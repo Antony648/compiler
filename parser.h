@@ -1,5 +1,6 @@
 #ifndef PARSER_H
 #define PARSER_H
+#include "lexer.h"
 #include <stdio.h>
 struct ast_expression;
 typedef struct ast_expression AST_EXPR;
@@ -35,6 +36,7 @@ typedef enum
 {
 	AST_DATA_TYPES_NULL,
 	AST_INT_T,
+	//can add other data types here
 }AST_DATA_TYPES;
 
 typedef struct 
@@ -143,6 +145,6 @@ struct ast_code_block
 	AST_CODE_BLOCK_T code_block_type;
 	AST_STATEMENT *statement;
 };
-AST_CODE_BLOCK* get_code_block();
+AST_CODE_BLOCK* get_code_block(token_t );
 
 #endif
