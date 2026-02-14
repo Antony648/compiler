@@ -1,35 +1,34 @@
 #include "parser.h"
 #include "lexer.h"
-
-
-#include <cstdio>
-#include <memory>
 #include <string.h>
 #include <stdbool.h>
 #include <stdio.h>
 void destroyed_code_block(AST_CODE_BLOCK* code_block);
+
 int token_train_offset=0;
 int parser_pov_lc=1;
 int seek_next()
 {
 	int rtn_val=token_train_offset+1;
-	/*while(rtn_val<token_count && token_train[rtn_val].token_type==TOKEN_NEW_LINE)
-		rtn_val+=1;*/
+	while(rtn_val<token_count && token_train[rtn_val].token_type==TOKEN_NEW_LINE)
+		rtn_val+=1;
 	return rtn_val<token_count?rtn_val:token_count-1;
 }
 int seek_mulitple(int val)
 {
 	int rtn_val=token_train_offset+val;
+	while(rtn_val<token_count && token_train[rtn_val].token_type==TOKEN_NEW_LINE)
+		rtn_val+=1;
 	return rtn_val<token_count?rtn_val:token_count-1;
 }
 int move_next()
 {
 	token_train_offset+=token_train_offset;
-	/*while(rtn_val <token_count && token_train[rtn_val].token_type==TOKEN_NEW_LINE)
+	while(token_train_offset <token_count && token_train[token_train_offset].token_type==TOKEN_NEW_LINE)
 	{
-		rtn_val+=1;
+		token_train_offset+=1;
 		parser_pov_lc+=1;
-	}*/
+	}
 	return token_train_offset<token_count?token_train_offset:token_count-1;
 }
 void destroy_expression(AST_EXPR *temp)
@@ -85,7 +84,7 @@ void destroy_code_block(AST_CODE_BLOCK* code_block)
 	return;
 }
 
-AST_EXPR* get_expression(){}
+AST_EXPR* get_expression(token_t end){}
 AST_FUNC* get_function(){}
 AST_INIT* get_init()
 {
@@ -97,7 +96,7 @@ AST_INIT* get_init()
 		break;
 	//add other data types later
 	default:
-		printf("syntax error:line %d: unknown data type in initialization",parser_pov_lc);
+		printf("syntax error:line %d: unknown data type in initialization\n",parser_pov_lc);
 		return NULL;
 
 	}
@@ -140,7 +139,7 @@ AST_INIT* get_init()
 		goto error_end;
 	}
 	move_next();//assignmnt consume
-	temp->expression=get_expression();
+	temp->expression=get_expression(TOKEN_SEMICOLON);
 	if(!temp->expression)
 	{
 		printf("failed in getting expression\n");	//can commet out later
@@ -149,7 +148,7 @@ AST_INIT* get_init()
 	move_next();//expression consume
 	if(token_train[token_train_offset].token_type!=TOKEN_SEMICOLON)
 	{
-		printf("syntax error:line %d: no terminating semicolon",parser_pov_lc);
+		printf("syntax error:line %d: no terminating semicolon\n",parser_pov_lc);
 		goto error_end;
 	}
 	move_next();//semicolon consume
@@ -170,7 +169,7 @@ AST_ASSIGN* get_assignment()
 {
 	if(token_train[token_train_offset].token_type!=TOKEN_ID)
 	{
-		printf("syntax error:line %d: non identifier start for assignment",parser_pov_lc);
+		printf("syntax error:line %d: non identifier start for assignment\n",parser_pov_lc);
 		return NULL;
 	}
 	AST_ASSIGN *temp=malloc(sizeof(AST_ASSIGN));
@@ -201,11 +200,11 @@ AST_ASSIGN* get_assignment()
 	move_next();
 	if(token_train[token_train_offset].token_type!=TOKEN_ASSIGN)
 	{
-		printf("syntax error:line %d:no assignment operator",parser_pov_lc);
+		printf("syntax error:line %d:no assignment operator\n",parser_pov_lc);
 		goto error_end;
 	}
 	move_next();
-	temp->expresssion=get_expression();
+	temp->expresssion=get_expression(TOKEN_SEMICOLON);
 	if(!temp->expresssion)
 	{
 		printf("error in getting expression"); //can comment out later will get suitable error statement from get_expression
@@ -214,7 +213,7 @@ AST_ASSIGN* get_assignment()
 	move_next();
 	if(token_train[token_train_offset].token_type==TOKEN_SEMICOLON)
 	{
-		printf("syntax error:line %d:no ending semicolon",parser_pov_lc);
+		printf("syntax error:line %d:no ending semicolon\n",parser_pov_lc);
 		goto error_end;
 	}
 	move_next();
@@ -237,14 +236,47 @@ AST_IF_CASE* get_if(){
 	move_next();	//if consume
 	if(token_train[token_train_offset].token_type!=TOKEN_LPAR)
 	{
-		printf("syntax error:line %d:if keyword not followed by paranthesis\n");
+		printf("syntax error:line %d:if keyword not followed by paranthesis\n",parser_pov_lc);
 		return NULL;
 	}
 	move_next();	//lpar
 	AST_IF_CASE *temp=malloc(sizeof(AST_IF_CASE));
+	if(!temp)
+	{
+		printf("malloc failure");
+		return NULL;
+	}
+	temp->test_case_expression=get_expression(TOKEN_RPAR);
+	if(!temp->test_case_expression)
+	{
+		printf("failure in getting expression\n");
+		goto error_end;
+	}
 	move_next(); 	//expression
+	if(token_train[token_train_offset].token_type!=TOKEN_RPAR)
+	{
+		printf("syntax error:line %d:no right paranthesis after condition\n",parser_pov_lc);
+		goto error_end;
+	}
 	move_next();	//rpar
+	if(token_train[token_train_offset].token_type!=TOKEN_LBRACE)
+	{
+		printf("syntax error:line %d:no right paranthesis\n",parser_pov_lc);
+		goto error_end;
+	}
 	move_next();	//lbrace
+	temp->code_block=get_code_block(TOKEN_LPAR);
+	if(!temp->code_block)
+	{
+		printf("error in getting code block");
+		goto error_end;
+	}
+	move_next();
+	if(token_train[token_train_offset].token_type!=TOKEN_RBRACE)
+	{
+		printf("syntax error:line %d:error in finding end of code block\n",parser_pov_lc);
+		goto error_end;
+	}
 	move_next();	//rbrace
 	return temp;
 error_end:
@@ -259,8 +291,83 @@ error_end:
 	}
 	return temp;
 }
-AST_WHILE_CASE* get_while(){}
-AST_FOR_CASE* get_for(){}
+
+AST_WHILE_CASE* get_while(){
+	if(token_train[token_train_offset].token_type!=TOKEN_WHILE)
+	{
+		printf("syntax error:line %d: ",parser_pov_lc);
+		return NULL;
+	}
+	move_next();	//consume while
+	if(token_train[token_train_offset].token_type !=TOKEN_LPAR)
+	{
+		printf("syntax error:line %d: while not followed by lpar\n",parser_pov_lc);
+		return NULL;
+	}
+	AST_WHILE_CASE* temp=malloc(sizeof(AST_WHILE_CASE));
+	if(!temp)
+	{
+		printf("malloc faliure\n");
+		return NULL;
+	}
+	memset(temp,0,sizeof(AST_WHILE_CASE));
+	move_next();	//consume lpar
+	temp->test_case_expression=get_expression(TOKEN_RPAR);
+	if(!temp)
+	{
+		printf("failed in getting test expresion");
+		goto error_end;
+	}
+	move_next();	//consume expression
+	if(token_train[token_train_offset].token_type !=TOKEN_RPAR)
+	{
+		printf("syntax error:line %d:no rpar after expression in while\n",parser_pov_lc);
+		goto error_end;
+	}
+	move_next();	//consume rpar
+	if(token_train[token_train_offset].token_type !=TOKEN_LBRACE)
+	{
+		printf("syntax error:line %d:no lbarce after condition speicification in while\n",parser_pov_lc);
+		goto error_end;
+	}
+	move_next();	//consume lbrace
+	temp->code_block=get_code_block(TOKEN_RBRACE);
+	move_next();	//consume block
+	if(token_train[token_train_offset].token_type!=TOKEN_RBRACE)
+	{
+		printf("syntax error:line %d:no rbrace after while body",parser_pov_lc);
+		goto error_end;
+	}
+	move_next();	//consume rbace
+	return temp;
+error_end:
+	if(temp->test_case_expression)
+		destroy_expression(temp->test_case_expression);
+	if(temp->code_block)
+		destroy_code_block(temp->code_block);
+	if(temp)
+	{
+		free(temp);
+		temp=NULL;
+	}
+	return temp;
+}
+
+AST_FOR_CASE* get_for(){
+	if(token_train[token_train_offset].token_type !=TOKEN_FOR)
+	{
+		printf("syntax error ");
+		return NULL;
+	}
+	move_next();
+	if(token_train[token_train_offset].token_type !=TOKEN_LPAR)
+	{
+		printf("syntax error:line %d:for not followed by lpar",parser_pov_lc);
+		return NULL;
+	}
+	move_next();
+
+}
 AST_DEC* get_decclaration()
 {
 
@@ -327,11 +434,6 @@ error_end:
 	return temp;
 
 }
-bool get_newline(){
-	parser_pov_lc++;
-	return token_train[move_next()].token_type==TOKEN_NEW_LINE;
-
-}
 int  get_statement(AST_STATEMENT* statement)
 {
 /*
@@ -350,6 +452,7 @@ AST_DEC_T,
 		return NULL;
 	}
 	memset(temp,0,sizeof(AST_STATEMENT));
+	temp->line_number=parser_pov_lc;
 	switch(token_train[token_train_offset].token_type)
 	{
 		case TOKEN_INT:
@@ -417,13 +520,6 @@ AST_DEC_T,
 			temp->statement_type=AST_WHILE_CASE_T;
 			temp->while_statement=get_while();
 			if(!temp->while_statement)
-				goto error_end;
-			break;
-		}
-		case TOKEN_NEW_LINE:
-		{
-			temp->statement_type=AST_NEW_LINE_T;
-			if(!get_newline())
 				goto error_end;
 			break;
 		}

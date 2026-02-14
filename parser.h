@@ -29,7 +29,7 @@ typedef enum
 	AST_WHILE_CASE_T,
 	AST_FOR_T,
 	AST_FUNC_T,
-	AST_NEW_LINE_T,
+	
 }AST_T;
 
 typedef enum 
@@ -118,6 +118,7 @@ typedef struct
 struct ast_statement
 {
 	AST_T statement_type;
+	int line_number;
 	union
 	{
 		AST_FOR_CASE *for_statement;
