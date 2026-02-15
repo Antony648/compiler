@@ -1,5 +1,6 @@
 #include "parser.h"
 #include "lexer.h"
+#include <cstdio>
 #include <string.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -352,7 +353,236 @@ error_end:
 	}
 	return temp;
 }
+AST_CODE_BLOCK* get_for_implict()
+{}
+AST_DEC* get_for_init_dec(token_t tok_t)
+{
+	AST_DEC *temp=malloc(sizeof(AST_DEC));
+	if(!temp)
+	{
+		printf("malloc faliure");
+		return NULL;
+	}
+	memset(temp,0,sizeof(AST_DEC));
+	temp->identifier=malloc(sizeof(AST_IDEN));
+	if(!temp->identifier)
+	{
+		printf("faliure in malloc");
+		goto error_end;
+	}
+	switch(tok_t)
+	{
+		case TOKEN_INT:
+			temp->identifier->data_type=AST_INT_T;
+			break;
+		//add your data types
+		default:
+			goto error_end;
+	}
+	move_next();
+	if(token_train[token_train_offset].token_type!=TOKEN_ID)
+	{
+		printf("syntax error:line %d:no identifier in decclaration in for init\n",parser_pov_lc );
+		goto error_end;
+	}
+	int len=strlen(token_train[token_train_offset].id_str);
+	temp->identifier->iden=malloc(len+1);
+	if(!temp->identifier->iden)
+	{
+		printf("malloc failure");
+		goto error_end;
+	}
+	strncpy(temp->identifier->iden,token_train[token_train_offset].id_str,len);
+	temp->identifier->iden[len]='\0';
+	
+	if(token_train[seek_next()].token_type==TOKEN_SEMICOLON)
+	{
+		return  temp;
+	}	
+	move_next();
+	if(token_train[token_train_offset].token_type!=TOKEN_COMMA)
+	{
+		printf("syntax error:line %d:no comma separation after expresssion\n",parser_pov_lc);
+		goto error_end;
+	}
+	return temp;
 
+error_end:
+	if(temp->identifier)
+		destroy_identifier(temp->identifier);
+	if(temp)
+	{
+		free(temp);
+		temp=NULL;
+	}
+	return temp;
+}
+AST_INIT* get_for_init_init(token_t tok_t)
+{
+	AST_INIT *temp=malloc(sizeof(AST_INIT));
+	if(!temp)
+	{
+		printf("malloc faliure");
+		return NULL;
+	}
+	memset(temp,0,sizeof(AST_INIT));
+	temp->identifier=malloc(sizeof(AST_IDEN));
+	if(!temp->identifier)
+	{
+		printf("failure in malloc");
+		goto error_end;
+	}
+	memset(temp->identifier,0,sizeof(AST_IDEN));
+	temp->expression=malloc(sizeof(AST_EXPR));
+	if(!temp->expression)
+	{
+		printf("faliure in malloc");
+		goto error_end;
+	}
+	memset(temp->expression,0,sizeof(AST_EXPR));
+	switch(tok_t)
+	{
+		case TOKEN_INT:
+				temp->identifier->data_type=AST_INT_T;
+				break;
+		//add other data types
+		default:
+				goto error_end;
+	}	
+	move_next();
+	if(token_train[token_train_offset].token_type !=TOKEN_ID)
+	{
+		printf("syntax error:line %d:no identifier after datatype",parser_pov_lc);
+		goto error_end;
+	}
+	int len=strlen(token_train[token_train_offset].id_str);
+	temp->identifier->iden=malloc(len+1);
+	if(!temp->identifier->iden)
+	{
+		printf("malloc failure");
+		goto error_end;
+	}
+	strncpy(temp->identifier->iden,token_train[token_train_offset].id_str,len);
+	temp->identifier->iden[len]='\0';
+	move_next();
+	if(token_train[token_train_offset].token_type!=TOKEN_ASSIGN)
+	{
+		printf("syntax error:line %d:no assignment operator\n",parser_pov_lc );
+		goto error_end;
+	}
+	move_next();
+	temp->expression=get_expression(TOKEN_COMMA);
+	if(!temp->expression)
+	{
+		printf("syntax error:line %d:error in getting expression \n",parser_pov_lc);
+		goto error_end;
+	}
+	if(token_train[seek_next()].token_type==TOKEN_SEMICOLON)
+	{
+		return  temp;
+	}	
+	move_next();
+	if(token_train[token_train_offset].token_type!=TOKEN_COMMA)
+	{
+		printf("syntax error:line %d:no comma separation after expresssion\n",parser_pov_lc);
+		goto error_end;
+	}
+	return temp;
+error_end:
+	if(temp->expression)
+		destroy_expression(temp->expression);
+	if(temp->identifier)
+		destroy_identifier(temp->identifier);
+	if(temp)
+	{
+		free(temp);
+		temp=NULL;
+	}
+	return temp;
+}
+AST_STATEMENT* get_for_statement_init()
+{
+	token_t tok_t=token_train[token_train_offset].token_type;
+	AST_STATEMENT* temp=malloc(sizeof(AST_STATEMENT));
+	if(!temp)
+	{
+		printf("malloc failure");
+		return NULL;
+	}
+	memset(temp,0,sizeof(AST_STATEMENT));
+	//move_next();
+	switch(token_train[seek_mulitple(2)].token_type)
+	{
+		case TOKEN_COMMA:
+			temp->statement_type=AST_DEC_T;
+			temp->dec_statement=get_for_init_dec(tok_t);
+			if(!temp->dec_statement)
+				goto error_end;
+			break;
+		case TOKEN_ASSIGN:
+			temp->statement_type=AST_INIT_T;
+			temp->init_statement=get_for_init_init(tok_t);
+			if(!temp->assign_statement)
+				goto error_end;
+			break;
+		default:
+			printf("syntax error:line %d:non initialization or decclaration in for init part\n",parser_pov_lc);
+			goto error_end;
+	}
+	return  temp;
+error_end:
+	if(temp)
+	{
+		free(temp);
+		temp=NULL;
+	}
+	return temp;
+}
+AST_CODE_BLOCK* get_for_init()
+{
+	//this is to generate a code_block for the statements in the
+	//init part of the for; it can only accept decclaration
+	//or initalization and also will be in same scope as the loop
+	AST_CODE_BLOCK* first=malloc(sizeof(AST_CODE_BLOCK));
+	if(!first)
+	{
+		printf("error in malloc");
+		return NULL;
+	}
+	memset(first,0,sizeof(AST_CODE_BLOCK));
+	//AST_CODE_BLOCK *temp=first;
+	first->statement=get_for_statement_init();
+	AST_STATEMENT *temp=first->statement;
+	if(!temp)
+	{
+		printf("error in get_statement\n");
+		goto error_end;
+	}
+	while(token_train[seek_next()].token_type!=TOKEN_SEMICOLON && token_train[seek_next()].token_type!=TOKEN_EOF)
+	{
+		temp->next=get_for_statement_init();
+		if(!temp->next)
+		{
+			printf("error in get_statement\n");
+			goto error_end;
+		}
+		temp=temp->next;
+	}
+	move_next();
+	if(token_train[token_train_offset].token_type !=TOKEN_SEMICOLON)
+	{
+		printf("syntax error:line %d:no semi colon after init",parser_pov_lc);
+		goto error_end;
+	}
+	return first;
+error_end:
+	if(first)
+	{
+		destroy_code_block(first);
+		first=NULL;
+	}
+	return first;
+}
 AST_FOR_CASE* get_for(){
 	if(token_train[token_train_offset].token_type !=TOKEN_FOR)
 	{
@@ -366,6 +596,34 @@ AST_FOR_CASE* get_for(){
 		return NULL;
 	}
 	move_next();
+	AST_FOR_CASE *temp=malloc(sizeof(AST_FOR_CASE));
+	if(!temp)
+	{
+		printf("malloc failure");
+		goto error_end;
+	}
+	memset(temp,0,sizeof(AST_FOR_CASE));
+	temp->init_expressions=get_for_init();
+	if(!temp->init_expressions)
+	{
+		printf("faliure in getting init code block\n");
+		goto error_end;
+	}
+	temp->test_case_expression=get_expression(TOKEN_SEMICOLON);
+	if(!temp->test_case_expression)
+	{
+		printf("failure in getting expression");
+		goto error_end;
+	}
+	move_next();
+	if(token_train[token_train_offset].token_type!=TOKEN_SEMICOLON)
+	{
+		printf("syntax error:line %d:error condition expression in if terminated without semicolon",parser_pov_lc);
+		goto error_end;
+	}
+	
+error_end:
+
 
 }
 AST_DEC* get_decclaration()
