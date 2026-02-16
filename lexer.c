@@ -210,6 +210,10 @@ int add_next_token(FILE *file_ptr)
 				token_train[token_count].token_type=TOKEN_SEMICOLON;
 				token_count++;
 				break;
+			case ',':
+				token_train[token_count].token_type=TOKEN_COMMA;
+				token_count++;
+				break;
 			case '>':
 				{
 					int k=fgetc(file_ptr);

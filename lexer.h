@@ -31,6 +31,7 @@ typedef enum
 	TOKEN_GREATER_THAN,
 	TOKEN_LESS_THAN_EQUAL,
 	TOKEN_GREATER_THAN_EQUAL,
+	TOKEN_COMMA,
 	TOKEN_EOF,
 }token_t;
 typedef struct

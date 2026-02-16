@@ -1,6 +1,5 @@
 #include "parser.h"
 #include "lexer.h"
-#include <cstdio>
 #include <string.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -85,7 +84,13 @@ void destroy_code_block(AST_CODE_BLOCK* code_block)
 	return;
 }
 
-AST_EXPR* get_expression(token_t end){}
+AST_EXPR* get_expression(int mode)
+{
+	//mode 1 :semicolon or normal
+	//mode 2: for , or ; for_init
+	//mode 3: for , or ) for_implict
+	//mode 4: rpar for while test and if test
+}
 AST_FUNC* get_function(){}
 AST_INIT* get_init()
 {
@@ -140,7 +145,7 @@ AST_INIT* get_init()
 		goto error_end;
 	}
 	move_next();//assignmnt consume
-	temp->expression=get_expression(TOKEN_SEMICOLON);
+	temp->expression=(TOKEN_SEMICOLON);
 	if(!temp->expression)
 	{
 		printf("failed in getting expression\n");	//can commet out later
@@ -165,6 +170,15 @@ error_end:
 		temp=NULL;
 	}
 	return temp;
+}
+void destroy_assignment(AST_ASSIGN* temp)
+{
+	if(temp->identifier)
+		destroy_identifier(temp->identifier);
+	if(temp->expresssion)
+		destroy_expression(temp->expresssion);
+	free(temp);
+	temp=NULL;
 }
 AST_ASSIGN* get_assignment()
 {
@@ -205,7 +219,7 @@ AST_ASSIGN* get_assignment()
 		goto error_end;
 	}
 	move_next();
-	temp->expresssion=get_expression(TOKEN_SEMICOLON);
+	temp->expresssion=get_expression(1);
 	if(!temp->expresssion)
 	{
 		printf("error in getting expression"); //can comment out later will get suitable error statement from get_expression
@@ -220,13 +234,8 @@ AST_ASSIGN* get_assignment()
 	move_next();
 	return temp;
 error_end:
-	if(temp->identifier)
-		destroy_identifier(temp->identifier);
-	if(temp->expresssion)
-		destroy_expression(temp->expresssion);
-	free(temp);
-	temp=NULL;
-	return temp;
+	destroy_assignment(temp);
+	return NULL;
 }
 AST_IF_CASE* get_if(){
 	if(token_train[token_train_offset].token_type!=TOKEN_IF)
@@ -247,7 +256,7 @@ AST_IF_CASE* get_if(){
 		printf("malloc failure");
 		return NULL;
 	}
-	temp->test_case_expression=get_expression(TOKEN_RPAR);
+	temp->test_case_expression=get_expression(4);
 	if(!temp->test_case_expression)
 	{
 		printf("failure in getting expression\n");
@@ -313,7 +322,7 @@ AST_WHILE_CASE* get_while(){
 	}
 	memset(temp,0,sizeof(AST_WHILE_CASE));
 	move_next();	//consume lpar
-	temp->test_case_expression=get_expression(TOKEN_RPAR);
+	temp->test_case_expression=get_expression(4);
 	if(!temp)
 	{
 		printf("failed in getting test expresion");
@@ -353,8 +362,120 @@ error_end:
 	}
 	return temp;
 }
+AST_STATEMENT* get_for_implict_assign()
+{
+	if(token_train[token_train_offset].token_type!=TOKEN_ID)
+	{
+		printf("syntax error:line %d:assignment statements in implict assign in for should start with identifier\n",parser_pov_lc);
+		return NULL;
+	}
+	AST_STATEMENT* temp=malloc(sizeof(AST_STATEMENT));
+	if(!temp)
+	{
+		printf("failure in malloc");
+		return NULL;
+	}
+	temp->statement_type=AST_ASSIGN_T;
+	temp->assign_statement=malloc(sizeof(AST_ASSIGN));
+	if(!temp->assign_statement)
+	{
+		printf("malloc failure");
+		goto error_end;
+	}
+	memset(temp->assign_statement,0,sizeof(AST_ASSIGN));
+	temp->assign_statement->identifier=malloc(sizeof(AST_IDEN));
+	if(!temp->assign_statement->identifier)
+	{
+		printf("malloc failure");
+		goto error_end;
+	}
+	memset(temp->assign_statement->identifier,0,sizeof(AST_ASSIGN));
+	int len=strlen(token_train[token_train_offset].id_str);
+	temp->assign_statement->identifier->iden=malloc(len+1);
+	if(!temp->assign_statement->identifier->iden)
+	{
+		printf("malloc failure");
+		goto error_end;
+	}
+	strncpy(temp->assign_statement->identifier->iden,token_train[token_train_offset].id_str,len);
+	temp->assign_statement->identifier->iden[len]='\0';
+	//data type is unknown now shouldset in semantic phase
+	move_next();
+	if(token_train[token_train_offset].token_type!=TOKEN_ASSIGN)
+	{
+		printf("syntax error:line %d:no assignment operator after identifier in for implict",parser_pov_lc);
+		goto error_end;
+	}
+	move_next();
+	temp->assign_statement->expresssion=get_expression(3);	//should stop at LPAR  also
+	if(!temp->assign_statement->expresssion)
+	{
+		printf("syntax error:line %d:assignment operator not followd by proper expression for implict",parser_pov_lc);
+		goto error_end;
+	}
+	switch(token_train[seek_next()].token_type)
+	{
+	case TOKEN_LPAR:
+		{
+			return temp;
+		}
+	case TOKEN_COMMA:
+		{
+			move_next();
+			return temp;
+		}
+	default:
+		{
+			printf("syntax error:line %d:assignment statement does not end properly in for implict",parser_pov_lc);
+			goto error_end;
+		}
+	}
+	return temp;
+error_end:
+	if(temp->assign_statement)
+		destroy_assignment(temp->assign_statement);
+	if(temp)
+	{
+		free(temp);
+		temp=NULL;
+	}
+	return temp;
+
+}
 AST_CODE_BLOCK* get_for_implict()
-{}
+{
+	AST_CODE_BLOCK* first=malloc(sizeof(AST_CODE_BLOCK));
+	if(!first)
+	{
+		printf("malloc failure");
+		return NULL;
+	}
+	first->statement=get_for_implict_assign();
+	AST_STATEMENT* temp=first->statement;
+	if(!temp)
+	{
+		printf("failure in getting expression");
+		goto error_end;
+	}
+	while(token_train[seek_next()].token_type!=TOKEN_RPAR)
+	{
+		temp->next=get_for_implict_assign();
+		if(!temp->next)
+		{
+			printf("failure in getting expression");
+			goto error_end;
+		}
+		temp=temp->next;
+	}
+	return first;
+error_end:
+	if(first)
+	{
+		destroy_code_block(first);
+		first=NULL;
+	}
+	return first;
+}
 AST_DEC* get_for_init_dec(token_t tok_t)
 {
 	AST_DEC *temp=malloc(sizeof(AST_DEC));
@@ -471,7 +592,7 @@ AST_INIT* get_for_init_init(token_t tok_t)
 		goto error_end;
 	}
 	move_next();
-	temp->expression=get_expression(TOKEN_COMMA);
+	temp->expression=get_expression(2); //should stop for also semicolon
 	if(!temp->expression)
 	{
 		printf("syntax error:line %d:error in getting expression \n",parser_pov_lc);
@@ -583,6 +704,7 @@ error_end:
 	}
 	return first;
 }
+
 AST_FOR_CASE* get_for(){
 	if(token_train[token_train_offset].token_type !=TOKEN_FOR)
 	{
@@ -609,7 +731,7 @@ AST_FOR_CASE* get_for(){
 		printf("faliure in getting init code block\n");
 		goto error_end;
 	}
-	temp->test_case_expression=get_expression(TOKEN_SEMICOLON);
+	temp->test_case_expression=get_expression(1);
 	if(!temp->test_case_expression)
 	{
 		printf("failure in getting expression");
@@ -623,7 +745,7 @@ AST_FOR_CASE* get_for(){
 	}
 	
 error_end:
-
+	
 
 }
 AST_DEC* get_decclaration()
