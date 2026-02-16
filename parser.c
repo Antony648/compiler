@@ -1,5 +1,6 @@
 #include "parser.h"
 #include "lexer.h"
+#include <cstdio>
 #include <string.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -91,7 +92,52 @@ AST_EXPR* get_expression(int mode)
 	//mode 3: for , or ) for_implict
 	//mode 4: rpar for while test and if test
 }
-AST_FUNC* get_function(){}
+AST_FUNC* get_function()
+{
+	AST_FUNC *temp=malloc(sizeof(AST_FUNC));
+	if(!temp)
+	{
+		printf("malloc failure");
+		return NULL;
+	}
+	memset(temp,0,sizeof(AST_FUNC));
+	switch(token_train[token_train_offset].token_type)
+	{
+		case TOKEN_INT:
+			temp->return_data_type=AST_INT_T;
+			break;
+		//add other data types
+		default:
+			printf("syntax error:line %d: illegal datatype for function\n",parser_pov_lc);
+			goto error_end;
+	}
+	move_next();
+	if(token_train[token_train_offset].token_type!= TOKEN_ID)
+	{
+		printf("syntax error:line %d:function decclaration with no identifer\n",parser_pov_lc);
+		goto error_end;
+	}
+	temp->identifier=malloc(sizeof(AST_IDEN));
+	if(!temp->identifier)
+	{
+		printf("malloc failure");
+		goto error_end;
+	}
+	memset(temp->identifier,0,sizeof(AST_IDEN));
+	//datatype already stored in func strcut
+	int len=strlen(token_train[token_train_offset].id_str);
+	temp->identifier->iden=malloc(len+1);
+	if(!temp->identifier->iden)
+	{
+		printf("malloc failure");
+		goto error_end;
+	}
+	strncpy(temp->identifier->iden,token_train[token_train_offset].id_str,len);
+	temp->identifier->iden[len]='\0';
+	
+error_end:
+
+}
 AST_INIT* get_init()
 {
 	AST_DATA_TYPES temp_dt=0;
@@ -145,7 +191,7 @@ AST_INIT* get_init()
 		goto error_end;
 	}
 	move_next();//assignmnt consume
-	temp->expression=(TOKEN_SEMICOLON);
+	temp->expression=get_expression(1);
 	if(!temp->expression)
 	{
 		printf("failed in getting expression\n");	//can commet out later
@@ -457,7 +503,7 @@ AST_CODE_BLOCK* get_for_implict()
 		printf("failure in getting expression");
 		goto error_end;
 	}
-	while(token_train[seek_next()].token_type!=TOKEN_RPAR)
+	while(token_train[seek_next()].token_type!=TOKEN_RPAR && token_train[seek_next()].token_type!=TOKEN_EOF)
 	{
 		temp->next=get_for_implict_assign();
 		if(!temp->next)
@@ -704,7 +750,22 @@ error_end:
 	}
 	return first;
 }
-
+void destroy_for(AST_FOR_CASE* temp)
+{
+	if(!temp)
+		return;
+	if(temp->test_case_expression)
+		destroy_expression(temp->test_case_expression);
+	if(temp->implict_expressions)
+		destroy_code_block(temp->implict_expressions);
+	if(temp->init_expressions)
+		destroy_code_block(temp->init_expressions);
+	if(temp->code_block)
+		destroy_code_block(temp->code_block);
+	if(temp)
+		free(temp);
+	temp=NULL;
+}
 AST_FOR_CASE* get_for(){
 	if(token_train[token_train_offset].token_type !=TOKEN_FOR)
 	{
@@ -743,9 +804,41 @@ AST_FOR_CASE* get_for(){
 		printf("syntax error:line %d:error condition expression in if terminated without semicolon",parser_pov_lc);
 		goto error_end;
 	}
-	
+	move_next();
+	temp->implict_expressions=get_for_implict();
+	if(!temp->implict_expressions)
+	{
+		printf("failure in getting implict expressions in for implict\n");
+		goto error_end;
+	}
+	move_next();
+	if(token_train[token_train_offset].token_type!=TOKEN_RPAR)
+	{
+		printf("syntax error:line %d:for condition set does not end with rpar\n",parser_pov_lc);
+		goto error_end;
+	}
+	move_next();
+	if(token_train[token_train_offset].token_type!=TOKEN_LBRACE)
+	{
+		printf("syntax error:line %d: for code block does not start with lbrace\n",parser_pov_lc);
+		goto error_end;
+	}
+	temp->code_block=get_code_block(TOKEN_RBRACE);
+	if(!temp->code_block)
+	{
+		printf("failure in gettin code block");
+		goto error_end;
+	}
+	move_next();
+	if(token_train[token_train_offset].token_type!=TOKEN_RBRACE)
+	{
+		printf("syntax error: line %d:code block does not end in rbace\n",parser_pov_lc);
+		goto error_end;
+	}
+	return temp;
 error_end:
-	
+	destroy_for(temp);
+	return NULL;
 
 }
 AST_DEC* get_decclaration()
