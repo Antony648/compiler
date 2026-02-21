@@ -1,6 +1,7 @@
 #include "parser.h"
 #include "lexer.h"
 #include <cstdio>
+#include <execution>
 #include <string.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -92,6 +93,38 @@ AST_EXPR* get_expression(int mode)
 	//mode 3: for , or ) for_implict
 	//mode 4: rpar for while test and if test
 }
+void destroy_parameters(AST_FUNC_PARAMS* first)
+{
+	if(!first)
+		return;
+	
+	while(first)
+	{
+		if(first->identifier)
+			destroy_identifier(first->identifier);
+		AST_FUNC_PARAMS* temp=first;
+		temp=first->next;
+		free(first);
+		first=temp;
+	}
+	return;
+}
+void destroy_function(AST_FUNC *temp)
+{
+	if(!temp)
+		return;
+	if(temp->identifier)
+		destroy_identifier(temp->identifier);
+	if(temp->code_block)
+		destroy_code_block(temp->code_block);
+	if(temp->paramters_list)
+		destroy_parameters(temp->paramters_list);
+	free(temp);
+	temp=NULL;
+	return;
+
+}
+
 AST_FUNC* get_function()
 {
 	AST_FUNC *temp=malloc(sizeof(AST_FUNC));
@@ -134,7 +167,216 @@ AST_FUNC* get_function()
 	}
 	strncpy(temp->identifier->iden,token_train[token_train_offset].id_str,len);
 	temp->identifier->iden[len]='\0';
+	move_next();
+	if(token_train[token_train_offset].token_type!=TOKEN_LPAR)
+	{
+		printf("syntax error:line %d:function decclaration without paranthesis",parser_pov_lc);
+		goto error_end;
+	}
+	move_next();
+	temp->paramters_list=malloc(sizeof(AST_FUNC_PARAMS));
+	if(!temp->paramters_list)
+	{
+		printf("malloc failure ");
+		goto error_end;
+	}
+	memset(temp->paramters_list,0,sizeof(AST_FUNC_PARAMS));
+	AST_FUNC_PARAMS* temp2=temp->paramters_list;
+	temp->parameter_count=0;
+
+	while(token_train[token_train_offset].token_type != TOKEN_RPAR)
+	{
+		AST_DATA_TYPES datatype=AST_DATA_TYPES_NULL;
+		switch(token_train[token_train_offset].token_type)
+		{
+			TOKEN_INT:
+				datatype=AST_INT_T;
+			//add other data types later
+				break;
+			default:
+				printf("syntax error:line %d: parameter with illegal datatype\n",parser_pov_lc);
+				goto error_end;
+		}
+		move_next();
+		if(token_train[token_train_offset].token_type !=TOKEN_ID)
+		{
+			printf("syntax error:line %d:data types with no param specified\n",parser_pov_lc);
+			goto error_end;
+		}
+		temp2->identifier=malloc(sizeof(AST_IDEN));
+		if(!temp2->identifier)
+		{
+			printf("malloc failure");
+			goto error_end;
+		}
+		memset(temp2->identifier,0,sizeof(AST_IDEN));
+		temp2->identifier->data_type=datatype;
+		len=strlen(token_train[token_train_offset].id_str);
+		temp2->identifier->iden=malloc(len+1);
+		if(!temp2->identifier->iden)
+		{
+			printf("malloc failure");
+			goto error_end;
+		}
+		strncpy(temp2->identifier->iden,token_train[token_train_offset].id_str,len);
+		temp2->identifier->iden[len]='\0';
+		temp->parameter_count+=1;
+		switch (token_train[seek_next()].token_type) 
+		{
+			TOKEN_COMMA:
+				if(token_train[seek_mulitple(2)].token_type==TOKEN_RPAR)
+				{
+					printf("syntax error:line %d:inside param block comma not followed by data type\n",parser_pov_lc);
+					goto error_end;
+				}
+				move_next();
+				break;
+			TOKEN_RPAR:
+				move_next();
+				continue;
+			default:
+				printf("syntax error:line %d:illegal character after variable speicification\n",parser_pov_lc);
+				goto error_end;
+		}
+		move_next();
+		temp2->next=malloc(sizeof(AST_FUNC_PARAMS));
+		if(!temp2->next)
+		{
+			printf("malloc failure");
+			goto error_end;
+		}
+		memset(temp2->next,0,sizeof(AST_FUNC_PARAMS));
+		temp2=temp2->next;
+
+
+	}
+	move_next();
+	if(token_train[token_train_offset].token_type !=TOKEN_LBRACE)
+	{
+		printf("syntax error:line %d:function with no body\n",parser_pov_lc);
+		goto error_end;
+	}
+	move_next();//start of block
+	temp->code_block=get_code_block(TOKEN_RBRACE);
+	if(token_train[token_train_offset].token_type!=TOKEN_RBRACE)
+	{
+		printf("syntax error:line %d:function body not concluded properly\n",parser_pov_lc);
+		goto error_end;
+	}
+	move_next();
+	return temp;
+error_end:
+	destroy_function(temp);
+	temp=NULL;
+	return NULL;
+}
+AST_FUNC_CALL* get_function_call()
+{
+	if(token_train[token_train_offset].token_type!=TOKEN_ID)
+	{
+		printf("syntax error:line %d:function call did not start with identifier\n",parser_pov_lc);
+		return NULL;
+	}
+	AST_FUNC_CALL *temp=malloc(sizeof(AST_FUNC_CALL));
+	if(!temp)
+	{
+		printf("malloc error");
+		goto error_end;
+	}
 	
+	temp->identifier=malloc(sizeof(AST_IDEN));
+	if(!temp->identifier)
+	{
+		printf("malloc failure");
+		goto error_end;
+	}
+	memset(temp->identifier,0,sizeof(AST_IDEN));
+	int len=strlen(token_train[token_train_offset].id_str);
+	temp->identifier->iden=malloc(len+1);
+	if(!temp->identifier->iden)
+	{
+	 	printf("malloc failure");
+	 	goto error_end;
+	}
+	strncpy(temp->identifier->iden,token_train[token_train_offset].id_str,len);
+	temp->identifier->iden[len]='\0';
+	move_next();
+	if(token_train[token_train_offset].token_type!=TOKEN_LPAR)
+	{
+		printf("syntax error:line %d:function call with no paranthesis\n",parser_pov_lc);
+		goto error_end;
+	}
+	temp->paramters_list=malloc(sizeof(AST_FUNC_PARAMS));
+	if(!temp->paramters_list)
+	{
+		printf("malloc errro");
+		goto error_end;
+	}
+	AST_FUNC_PARAMS *temp2=temp->paramters_list;
+	temp->parameter_count = 0;
+	while(token_train[token_train_offset].token_type!=TOKEN_RPAR)
+	{
+		if(token_train[token_train_offset].token_type!=TOKEN_ID)
+		{
+			printf("syntax error:line %d:non identifier inside paranthesis",parser_pov_lc);
+			goto error_end;
+		}
+		temp2->identifier=malloc(sizeof(AST_IDEN));
+		if(!temp2->identifier)
+		{
+			printf("malloc failure");
+			goto error_end;
+		}
+		memset(temp2->identifier,0,sizeof(AST_IDEN));
+		len=strlen(token_train[token_train_offset].id_str);
+		temp2->identifier->iden=malloc(sizeof(len+1));
+		if(!temp2->identifier->iden)
+		{
+			printf("malloc failure");
+			goto error_end;
+		}
+		strncpy(temp2->identifier->iden,token_train[token_train_offset].id_str,len);
+		temp2->identifier->iden[len]='\0';
+		temp->parameter_count=0;
+		move_next();
+		switch (token_train[token_train_offset].token_type) 
+		{
+			TOKEN_COMMA:
+			{
+				if(token_train[seek_next()].token_type!=TOKEN_ID)
+				{
+					printf("syntax errror:line %d:no identifier after comma",parser_pov_lc);
+					goto error_end;
+				}
+				move_next();
+				break;
+			}
+			TOKEN_RPAR:
+			{
+				continue;
+			}
+			default:
+			{
+				printf("synatx error:line %d:unkown character after identifier\n",parser_pov_lc);
+				goto error_end;
+			}
+		}
+		temp2->next=malloc(sizeof(AST_FUNC_PARAMS));
+		if(!temp2->next)
+		{
+			printf("malloc failure");
+			goto error_end;
+		}
+		memset(temp2->next,0,sizeof(AST_FUNC_PARAMS));
+		temp2=temp2->next;
+	}
+	move_next();
+	if(token_train[token_train_offset].token_type!=TOKEN_SEMICOLON)
+	{
+		printf("syntax error:line %d:function call without semicolon\n",parser_pov_lc);
+		goto error_end;
+	}
+	move_next();
 error_end:
 
 }
@@ -217,6 +459,7 @@ error_end:
 	}
 	return temp;
 }
+
 void destroy_assignment(AST_ASSIGN* temp)
 {
 	if(temp->identifier)
@@ -345,7 +588,7 @@ error_end:
 		free(temp);
 		temp=NULL;
 	}
-	return temp;
+	return NULL;
 }
 
 AST_WHILE_CASE* get_while(){
@@ -406,7 +649,7 @@ error_end:
 		free(temp);
 		temp=NULL;
 	}
-	return temp;
+	return NULL;
 }
 AST_STATEMENT* get_for_implict_assign()
 {
@@ -485,7 +728,7 @@ error_end:
 		free(temp);
 		temp=NULL;
 	}
-	return temp;
+	return NULL;
 
 }
 AST_CODE_BLOCK* get_for_implict()
@@ -520,7 +763,7 @@ error_end:
 		destroy_code_block(first);
 		first=NULL;
 	}
-	return first;
+	return NULL;
 }
 AST_DEC* get_for_init_dec(token_t tok_t)
 {
@@ -907,7 +1150,7 @@ error_end:
 	return temp;
 
 }
-int  get_statement(AST_STATEMENT* statement)
+int  get_statement(AST_STATEMENT** statement)
 {
 /*
 AST_DEC_T,
@@ -965,12 +1208,25 @@ AST_DEC_T,
 		}
 		case TOKEN_ID:
 		{
-			//assignment
-			temp->statement_type=AST_ASSIGN_T;
-			temp->assign_statement=get_assignment();
-			if(!temp->assign_statement)
-				goto error_end;
-			break;
+			
+			if(token_train[seek_next()].token_type==TOKEN_ASSIGN)
+			{
+				//assignment
+				temp->statement_type=AST_ASSIGN_T;
+				temp->assign_statement=get_assignment();
+				if(!temp->assign_statement)
+					goto error_end;
+				break;
+			}
+			else if(token_train[seek_next()].token_type==TOKEN_LPAR)
+			{
+				//function call
+				temp->statement_type=AST_FUNC_CALL_T;
+				temp->func_call=get_function_call();
+				if(!temp->func_call)
+					goto error_end;
+				break;
+			}
 		}
 		case TOKEN_IF:
 		{
@@ -1000,13 +1256,13 @@ AST_DEC_T,
 			goto error_end;
 	}
 
-	statement=temp;
+	*statement=temp;
 	return 0;
 error_end:
 	printf("syntax error in line %d\n",parser_pov_lc);
 	if(temp)
 		free(temp);
-	statement=NULL;
+	*statement=NULL;
 	return -1;
 
 }
@@ -1030,7 +1286,7 @@ AST_CODE_BLOCK* get_code_block(token_t end)
 	{
 		return prgm;
 	}
-	if(get_statement(prgm->statement)<0)
+	if(get_statement(&prgm->statement)<0)
 	{
 		printf("error:no content in input file\n");
 		destroy_code_block(prgm);
@@ -1044,7 +1300,7 @@ AST_CODE_BLOCK* get_code_block(token_t end)
 		{
 			return prgm;
 		}
-		rtn_val=get_statement(temp->next);
+		rtn_val=get_statement(&temp->next);
 		switch(rtn_val)
 		{
 			case 0:	

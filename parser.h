@@ -29,6 +29,7 @@ typedef enum
 	AST_WHILE_CASE_T,
 	AST_FOR_T,
 	AST_FUNC_T,
+	AST_FUNC_CALL_T,
 	
 }AST_T;
 
@@ -104,7 +105,7 @@ typedef struct
 }AST_FOR_CASE;
 struct ast_func_params
 {
-	AST_IDEN identifier;
+	AST_IDEN *identifier;
 	AST_FUNC_PARAMS* next;
 };
 typedef struct 
@@ -115,6 +116,12 @@ typedef struct
 	AST_IDEN* identifier;
 	AST_CODE_BLOCK *code_block;
 }AST_FUNC;
+typedef  struct 
+{
+	AST_IDEN* identifier;
+	AST_FUNC_PARAMS *paramters_list;
+	int parameter_count;
+}AST_FUNC_CALL ;
 struct ast_statement
 {
 	AST_T statement_type;
@@ -128,6 +135,7 @@ struct ast_statement
 		AST_ASSIGN *assign_statement;
 		AST_DEC *dec_statement;
 		AST_INIT *init_statement;
+		AST_FUNC_CALL *func_call;
 	};
 	AST_STATEMENT* next;
 };
