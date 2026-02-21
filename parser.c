@@ -92,6 +92,40 @@ AST_EXPR* get_expression(int mode)
 	//mode 2: for , or ; for_init
 	//mode 3: for , or ) for_implict
 	//mode 4: rpar for while test and if test
+	token_t end1=TOKEN_NULL; token_t end2 =TOKEN_NULL;
+	switch(mode)
+	{
+		case 1:
+			end1=TOKEN_SEMICOLON;
+			break;
+		case 2:
+			end1=TOKEN_COMMA;end2=TOKEN_SEMICOLON;
+			break;
+		case 3:
+			end1=TOKEN_COMMA;end2=TOKEN_LPAR;
+			break;
+		case 4:
+			end1=TOKEN_RPAR;
+			break;
+		default:
+			printf("internal error in compiler; unknown mode value\n");
+			goto error_end;
+	}
+	AST_EXPR* temp=malloc(sizeof(AST_EXPR));
+	if(!temp)
+	{
+		printf("malloc failure");
+		goto error_end;
+	}
+	int start=token_train_offset;int end=token_train_offset;
+	while(token_train[end].token_type!= end1 && token_train[end].token_type!=end2)
+	{
+		end+=1;
+	}
+	//now end contains the tokens till the end we want
+	
+error_end:
+	
 }
 void destroy_parameters(AST_FUNC_PARAMS* first)
 {
@@ -270,6 +304,16 @@ error_end:
 	temp=NULL;
 	return NULL;
 }
+void destroy_function_call(AST_FUNC_CALL * temp)
+{
+	if(!temp)
+		return;
+	if(temp->identifier)
+		destroy_identifier(temp->identifier);
+	if(temp->paramters_list)
+		destroy_parameters(temp->paramters_list);
+	free(temp);
+}
 AST_FUNC_CALL* get_function_call()
 {
 	if(token_train[token_train_offset].token_type!=TOKEN_ID)
@@ -377,7 +421,10 @@ AST_FUNC_CALL* get_function_call()
 		goto error_end;
 	}
 	move_next();
+	return temp;
 error_end:
+	destroy_function_call(temp);
+	return NULL;
 
 }
 AST_INIT* get_init()
