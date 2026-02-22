@@ -30,6 +30,7 @@ typedef enum
 	AST_FOR_T,
 	AST_FUNC_T,
 	AST_FUNC_CALL_T,
+	AST_RETURN_T,
 	
 }AST_T;
 
@@ -60,7 +61,7 @@ struct ast_expression
 	AST_EXPR_T ast_exp_type;
 	union
 	{
-		AST_IDEN identifier;
+		AST_IDEN *identifier;
 		int value;
 		struct
 		{
@@ -108,6 +109,11 @@ struct ast_func_params
 	AST_IDEN *identifier;
 	AST_FUNC_PARAMS* next;
 };
+typedef struct ast_return
+{
+	AST_IDEN *identifier;
+	int value;
+}AST_RETURN;
 typedef struct 
 {
 	AST_DATA_TYPES return_data_type;
@@ -136,6 +142,7 @@ struct ast_statement
 		AST_DEC *dec_statement;
 		AST_INIT *init_statement;
 		AST_FUNC_CALL *func_call;
+		AST_RETURN *return_statement;
 	};
 	AST_STATEMENT* next;
 };

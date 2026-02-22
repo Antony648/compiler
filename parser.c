@@ -85,7 +85,29 @@ void destroy_code_block(AST_CODE_BLOCK* code_block)
 	code_block=NULL;
 	return;
 }
-
+int get_priority(token_t tok_t)
+{
+	switch(tok_t)
+	{
+		case TOKEN_MUL:
+		case TOKEN_DIV:
+			return 4;
+		case TOKEN_ADD:
+		case TOKEN_SUB:
+			return 3;
+		case TOKEN_EQUAL:
+		case TOKEN_NEQUAL:
+		case TOKEN_GREATER_THAN_EQUAL:
+		case TOKEN_LESS_THAN_EQUAL:
+		case TOKEN_LESS_THAN:
+		case TOKEN_GREATER_THAN:
+			return 2;
+		case TOKEN_LPAR:
+			return 0;
+		default:
+			return -1;
+	}
+}
 AST_EXPR* get_expression(int mode)
 {
 	//mode 1 :semicolon or normal
@@ -117,13 +139,126 @@ AST_EXPR* get_expression(int mode)
 		printf("malloc failure");
 		goto error_end;
 	}
-	int start=token_train_offset;int end=token_train_offset;
-	while(token_train[end].token_type!= end1 && token_train[end].token_type!=end2)
+	int start=token_train_offset, end,count=0;int init_line_no=parser_pov_lc;
+	while(token_train[token_train_offset].token_type!= end1 && token_train[token_train_offset].token_type!=end2
+		&& token_train[token_train_offset].token_type !=TOKEN_EOF)
 	{
-		end+=1;
+		//end+=1;
+		count++;
+		move_next();
 	}
+	if(count==0)
+	{
+		printf("syntax error:line %d:no expression to evalulate\n",parser_pov_lc);
+		goto error_end;
+	}
+	if(token_train[token_train_offset].token_type==TOKEN_EOF)
+	{
+		printf("syntax error:line %d:expression not terminated reached end of file\n",parser_pov_lc);
+		goto error_end;
+	}
+	end=token_train_offset;
 	//now end contains the tokens till the end we want
+	//three types of expressions , 
+	//identifiers
+	//values
+	//binary expression
+	//expr->expr < expr | expr > expr |expr >= expr | expr <= expr | expr + expr | expr - expr | expr / expr | expr *expr| id |val
+	//this does not care about precedence but we will fix that in our code
 	
+	if(count==1)	
+	{
+		//value or identifier
+		switch (token_train[start].token_type) 
+		{
+			case TOKEN_ID:
+			{
+				temp->ast_exp_type=AST_IDEN_T;
+				temp->identifier=malloc(sizeof(AST_IDEN));
+				if(!temp->identifier)
+				{
+					printf("malloc failure");
+					goto error_end;
+				}
+				memset(temp->identifier,0,sizeof(AST_IDEN));
+				int len=strlen(token_train[start].id_str);
+				temp->identifier->iden=malloc(len+1);
+				if(!temp->identifier->iden)
+				{
+					printf("malloc failure");
+					goto error_end;
+				}
+				strncpy(temp->identifier->iden,token_train[start].id_str,len);
+				temp->identifier->iden[len]='\0';
+				//datatype will be filled later semantic analysis
+				token_train_offset-=1;
+				return temp;
+
+			}
+
+			case TOKEN_INT_VAL:
+			{	
+				temp->ast_exp_type=AST_VAL_T;
+				temp->value=token_train[start].value;
+				return temp;
+			}	
+			default:
+				printf("syntax error:line %d:invalid expression\n",parser_pov_lc);
+				goto error_end;
+		}
+		//convert infix to postfix
+		int stack[count];
+		int postfix[count];
+		int stack_last=0,postfix_last=0;
+		for(int i=0;i<count;i++)
+		{
+			stack[i] =-1;
+			postfix[i]=-1;
+		}
+		
+		for(int i=start;i<end;i++)
+		{
+			switch(token_train[i].token_type)
+			{
+				case TOKEN_INT_VAL:
+				case TOKEN_ID:
+				{
+					postfix[postfix_last++]=i;
+					break;
+				}
+				case TOKEN_LPAR:
+				{
+					stack[stack_last++]=i;
+					break;
+				}
+				case TOKEN_RPAR:
+					continue;
+	            case TOKEN_ADD:
+	            {
+
+	            }
+	            case TOKEN_SUB:
+	            case TOKEN_MUL:
+	            case TOKEN_DIV:
+	            case TOKEN_EQUAL:
+	            case TOKEN_NEQUAL:
+	            case TOKEN_NEW_LINE:
+	      
+	            case TOKEN_LESS_THAN:
+	            case TOKEN_GREATER_THAN:
+	            case TOKEN_LESS_THAN_EQUAL:
+	            case TOKEN_GREATER_THAN_EQUAL:
+	                        
+	            default:
+	            {
+	            	printf("synatx error:line %d:may have occured from line %d:illegal token in expression",parser_pov_lc,init_line_no);
+	            	goto error_end;
+	            }
+            }
+        }
+		
+	}
+
 error_end:
 	
 }
@@ -1299,8 +1434,13 @@ AST_DEC_T,
 				goto error_end;
 			break;
 		}
+		case TOKEN_RETURN:
+		{
+			
+		}
 		default:
 			goto error_end;
+		}
 	}
 
 	*statement=temp;
