@@ -108,6 +108,52 @@ int get_priority(token_t tok_t)
 			return -1;
 	}
 }
+int push(int* stack,int* top,int val,int len)
+{
+	if(*top>= len-1)
+	{
+		printf("internal error:stack full:%d;\n",parser_pov_lc);
+		return -1;
+	}
+	*top+=1;
+	stack[*top]=val;
+	return  0;
+
+}
+int pop(int* stack,int* top)
+{
+	if(*top <0)
+	{
+		printf("internal error:stack empty:%d \n",parser_pov_lc);
+		return -2;
+	}
+	*top-=1;
+	return stack[*top +1];
+}
+int push_postfix(AST_EXPR* expr[],int* expr_top,AST_EXPR* val,int len)
+{
+	if(*expr_top>= len-1)
+	{
+		printf("internal error:stack full:%d\n",parser_pov_lc);
+		return -2;
+	}
+	*expr_top+=1;
+	expr[*expr_top]=val;
+	return 0;
+}
+AST_EXPR* pop_postfix(AST_EXPR* expr[],int* expr_top)
+{
+	if(*expr_top<0)
+	{
+		printf("internal error:stack empty:%d \n",parser_pov_lc);
+		return NULL;
+	}
+	AST_EXPR* k=expr[*expr_top];
+	expr[*expr_top]=NULL;
+	*expr_top-=1;
+	return k;
+
+}
 AST_EXPR* get_expression(int mode)
 {
 	//mode 1 :semicolon or normal
@@ -124,7 +170,7 @@ AST_EXPR* get_expression(int mode)
 			end1=TOKEN_COMMA;end2=TOKEN_SEMICOLON;
 			break;
 		case 3:
-			end1=TOKEN_COMMA;end2=TOKEN_LPAR;
+			end1=TOKEN_RPAR ;end2=TOKEN_COMMA;
 			break;
 		case 4:
 			end1=TOKEN_RPAR;
@@ -140,10 +186,34 @@ AST_EXPR* get_expression(int mode)
 		goto error_end;
 	}
 	int start=token_train_offset, end,count=0;int init_line_no=parser_pov_lc;
-	while(token_train[token_train_offset].token_type!= end1 && token_train[token_train_offset].token_type!=end2
-		&& token_train[token_train_offset].token_type !=TOKEN_EOF)
+	int paranthesis_count=0;
+	while(1)
 	{
 		//end+=1;
+		if(token_train[token_train_offset].token_type==TOKEN_EOF)
+		{
+			printf("syntax error:line %d:expression not terminated reached end of file\n",parser_pov_lc);
+			goto error_end;
+		}
+		if(token_train[token_train_offset].token_type==TOKEN_RPAR && end1==TOKEN_RPAR)
+		{
+			if(paranthesis_count)
+			{
+				//paranthesis count non zero exit
+				break;
+			}
+			else
+				paranthesis_count--;
+
+		}
+		if(token_train[token_train_offset].token_type ==end1 || token_train[token_train_offset].token_type
+			==end2)
+		{
+			break;
+		}
+		if(token_train[token_train_offset].token_type==TOKEN_LPAR)
+				paranthesis_count++;
+		
 		count++;
 		move_next();
 	}
@@ -152,9 +222,9 @@ AST_EXPR* get_expression(int mode)
 		printf("syntax error:line %d:no expression to evalulate\n",parser_pov_lc);
 		goto error_end;
 	}
-	if(token_train[token_train_offset].token_type==TOKEN_EOF)
+	if(paranthesis_count)
 	{
-		printf("syntax error:line %d:expression not terminated reached end of file\n",parser_pov_lc);
+		printf("syntax error:line %d:may have originated from %d:imbalanced paranthesis",parser_pov_lc,init_line_no);
 		goto error_end;
 	}
 	end=token_train_offset;
@@ -206,62 +276,246 @@ AST_EXPR* get_expression(int mode)
 				printf("syntax error:line %d:invalid expression\n",parser_pov_lc);
 				goto error_end;
 		}
-		//convert infix to postfix
-		int stack[count];
-		int postfix[count];
-		int stack_last=0,postfix_last=0;
-		for(int i=0;i<count;i++)
-		{
-			stack[i] =-1;
-			postfix[i]=-1;
-		}
-		
-		for(int i=start;i<end;i++)
-		{
-			switch(token_train[i].token_type)
-			{
-				case TOKEN_INT_VAL:
-				case TOKEN_ID:
-				{
-					postfix[postfix_last++]=i;
-					break;
-				}
-				case TOKEN_LPAR:
-				{
-					stack[stack_last++]=i;
-					break;
-				}
-				case TOKEN_RPAR:
-					continue;
-	            case TOKEN_ADD:
-	            {
-
-	            }
-	            case TOKEN_SUB:
-	            case TOKEN_MUL:
-	            case TOKEN_DIV:
-	            case TOKEN_EQUAL:
-	            case TOKEN_NEQUAL:
-	            case TOKEN_NEW_LINE:
-	      
-	            case TOKEN_LESS_THAN:
-	            case TOKEN_GREATER_THAN:
-	            case TOKEN_LESS_THAN_EQUAL:
-	            case TOKEN_GREATER_THAN_EQUAL:
-	                        
-	            default:
-	            {
-	            	printf("synatx error:line %d:may have occured from line %d:illegal token in expression",parser_pov_lc,init_line_no);
-	            	goto error_end;
-	            }
-            }
-        }
-		
 	}
 
+	//convert infix to postfix
+	if(temp)
+		free(temp);
+	temp=NULL;
+	int stack[count];
+	int postfix[count+1];
+	int stack_last=-1,postfix_last=-1;
+	for(int i=0;i<count;i++)
+	{
+		stack[i] =-1;
+		postfix[i]=-1;
+	}
+		
+	for(int i=start;i<end;i++)
+	{
+		switch(token_train[i].token_type)
+		{
+			case TOKEN_INT_VAL:
+			case TOKEN_ID:
+			{
+				postfix[postfix_last++]=i;
+				break;
+			}
+			case TOKEN_LPAR:
+			{
+				stack[stack_last++]=i;
+				break;
+			}
+			case TOKEN_RPAR:
+			{
+				while( stack_last>=0 && token_train[stack[stack_last]].token_type!=TOKEN_RPAR )
+				{
+					int k=pop(stack,&stack_last);
+					if(k>=0)
+					{
+						if(push(postfix,&postfix_last,k,count))
+						{
+							goto error_end;
+						}
+					}
+				}
+				if(token_train[stack[stack_last]].token_type==TOKEN_RPAR)
+				{
+					 pop(stack,&stack_last);
+				}
+			}
+            case TOKEN_ADD:
+            case TOKEN_SUB:
+            case TOKEN_MUL:
+            case TOKEN_DIV:
+            case TOKEN_EQUAL:
+            case TOKEN_NEQUAL:
+            case TOKEN_LESS_THAN:
+            case TOKEN_GREATER_THAN:
+            case TOKEN_LESS_THAN_EQUAL:
+            case TOKEN_GREATER_THAN_EQUAL:
+            {
+            	if(get_priority(token_train[i].token_type)>get_priority(token_train[stack[stack_last]].token_type))
+            	{
+            		if(push(stack,&stack_last,i,count))
+            		{
+            			goto error_end;
+            		}
+            		break;
+            	}
+            	while(get_priority(token_train[i].token_type)<=get_priority(token_train[stack[stack_last]].token_type))
+            	{
+            		int k=pop(stack,&stack_last);
+            		if(k>=0)
+            		{
+            			if(push(postfix,&postfix_last,k,count))
+            				goto error_end;
+            		}
+            		else 
+            			break;
+            	}
+            	break;
+            }
+            case TOKEN_NEW_LINE:
+      			continue;
+            
+                        
+            default:
+            {
+         	 	printf("synatx error:line %d:may have occured from line %d:illegal token in expression",parser_pov_lc,init_line_no);
+            	goto error_end;
+            }
+        }
+    }
+    while(stack_last>=0)
+    {
+    	int k=pop(stack,&stack_last);
+    	if(k>=0)
+    		if(push(postfix,&postfix_last,k,count))
+    			goto error_end;
+    }
+	//postfix populated
+	//evaluate postfix	
+	AST_EXPR *expr_stack[count];
+	for(int i=0;i<count;i++)
+		expr_stack[i]=NULL;
+	int expr_stack_index=-1;
+	binary_ops bin_ops=AST_NULL_BIN_OPS_T;
+	for(int i=0;i<=postfix_last;i++)
+	{
+
+		switch(token_train[postfix[i]].token_type)
+		{
+			case TOKEN_ID:
+			{
+				AST_EXPR *temp2=malloc(sizeof(AST_EXPR));
+				if(!temp2)
+				{
+					printf("malloc failure");
+					goto error_end;
+				}
+				memset(temp2,0,sizeof(AST_EXPR));
+				temp2->ast_exp_type=AST_IDEN_T;
+				temp2->identifier=malloc(sizeof(AST_IDEN));
+				if(!temp2->identifier)
+				{
+					printf("malloc failure");
+					goto error_end;
+				}
+				memset(temp2->identifier,0,sizeof(AST_IDEN_T));
+				int len=strlen(token_train[postfix[i]].id_str);
+				temp2->identifier->iden=malloc(len+1);
+				if(!temp2->identifier->iden)
+				{
+					printf("malloc failure");
+					goto error_end;
+				}
+				strncpy(temp2->identifier->iden,token_train[postfix[i]].id_str,len);
+				temp2->identifier->iden[len]='\0';
+				if(push_postfix(expr_stack,&expr_stack_index,temp2,count))
+				{
+					goto error_end;
+				}
+				continue;;
+			}
+			case TOKEN_INT_VAL:
+			{
+				AST_EXPR *temp2=malloc(sizeof(AST_EXPR));
+				if(!temp2)
+				{
+					printf("malloc failure"); goto error_end;
+				}
+				memset(temp2, 0, sizeof(AST_EXPR));
+				temp2->ast_exp_type=AST_VAL_T;
+				temp2->value=token_train[postfix[i]].value;
+				if(push_postfix(expr_stack, &expr_stack_index, temp2, count))
+				{
+					goto error_end;
+				}
+				continue;
+			}
+			case TOKEN_ADD:
+				bin_ops=AST_ADD_T;
+				break;
+            case TOKEN_SUB:
+            	bin_ops=AST_SUB_T;
+            	break;
+            case TOKEN_MUL:
+            	bin_ops=AST_MUL_T;
+            	break;
+            case TOKEN_DIV:
+            	bin_ops=AST_DIV_T;
+            	break;
+            case TOKEN_EQUAL:
+            	bin_ops=AST_EQ_T;
+            	break;
+            case TOKEN_NEQUAL:
+            	bin_ops=AST_NEQ_T;
+            	break;
+            case TOKEN_LESS_THAN:
+            	bin_ops=AST_LESS_T;
+            	break;
+            case TOKEN_GREATER_THAN:
+            	bin_ops=AST_GREAT_T;
+            	break;
+            case TOKEN_LESS_THAN_EQUAL:
+            	bin_ops=AST_LEQ_T;
+            	break;
+            case TOKEN_GREATER_THAN_EQUAL:
+            	bin_ops=AST_GEQ_T;
+            	break;
+           
+			default:
+			{
+				printf("syntax error:illegal character in %d",parser_pov_lc);
+				goto  error_end;
+			}
+		}
+		if(expr_stack_index<1)
+    	{
+    		//less that two elements
+    		printf("internal error: a symbol with no two operands\n");
+    		goto error_end;
+    	}
+    	AST_EXPR* right_expression=pop_postfix(expr_stack, &expr_stack_index);
+    	if(!right_expression)
+    	{
+    		printf("internal error:failure to getting right expression\n");
+    		goto error_end;
+    	}
+    	AST_EXPR* left_expression=pop_postfix(expr_stack, &expr_stack_index);
+    	if(!left_expression)
+    	{
+    		printf("internal error:failure in getting left expression \n");
+    		goto  error_end;
+    	}
+    	AST_EXPR* temp2=malloc(sizeof(AST_EXPR));
+    	if(!temp2)
+    	{
+    		printf("malloc failure");
+    		goto error_end;
+    	}
+    	memset(temp2, 0, sizeof(AST_EXPR));
+    	temp2->ast_exp_type=AST_BIN_EXPR_T;
+    	temp2->expression.expr_l=left_expression;
+    	temp2->expression.expr_r=right_expression;
+    	temp2->expression.bin_ops=bin_ops;
+    	if(push_postfix(expr_stack, &expr_stack_index, temp2,count))
+    	{
+    		goto error_end;
+    	}
+	}
+	//after this we should only have a single element in our expr_stack
+	if(expr_stack_index!=0)
+	{
+		printf("internal error: improper computation of expression");
+		goto error_end;
+	}
+	return expr_stack[expr_stack_index];
+
 error_end:
-	
-}
+	return NULL;
+} 
 void destroy_parameters(AST_FUNC_PARAMS* first)
 {
 	if(!first)
@@ -1332,6 +1586,41 @@ error_end:
 	return temp;
 
 }
+AST_RETURN* get_return()
+{
+	AST_RETURN* temp=malloc(sizeof(AST_RETURN));
+	if(!temp)
+	{
+		printf("malloc failure");
+		return NULL;
+	}
+	memset(temp,0,sizeof(AST_RETURN));
+	if(token_train[seek_next()].token_type!=TOKEN_SEMICOLON)
+		return temp;
+	move_next();
+	temp->expression=get_expression(1);
+	if(!temp->expression)
+	{
+		printf("synatx error:line %d:failure in getting expression\n",parser_pov_lc);
+		goto error_end;
+	}
+	move_next();
+	if(token_train[token_train_offset].token_type!=TOKEN_SEMICOLON)
+	{
+		printf("syntax error:line %d:return does not end in semicolon",parser_pov_lc);
+		goto error_end;
+	}
+	move_next();
+	return temp;
+error_end:
+	if(!temp)
+		return NULL;
+	if(temp->expression)
+		destroy_expression(temp->expression);
+	free(temp);
+	temp=NULL;
+	return NULL;
+}
 int  get_statement(AST_STATEMENT** statement)
 {
 /*
@@ -1436,11 +1725,17 @@ AST_DEC_T,
 		}
 		case TOKEN_RETURN:
 		{
-			
+			temp->statement_type=AST_RETURN_T;
+			temp->return_statement=get_return();
+			if(!temp->return_statement)
+				goto error_end;
+			break;
 		}
 		default:
+		{
 			goto error_end;
 		}
+		
 	}
 
 	*statement=temp;

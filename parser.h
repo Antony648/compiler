@@ -18,6 +18,10 @@ typedef enum
 	AST_DIV_T,
 	AST_EQ_T,
 	AST_NEQ_T,
+	AST_LESS_T,
+	AST_GREAT_T,
+	AST_LEQ_T,
+	AST_GEQ_T,
 }binary_ops;
 typedef enum
 {
@@ -111,8 +115,7 @@ struct ast_func_params
 };
 typedef struct ast_return
 {
-	AST_IDEN *identifier;
-	int value;
+	AST_EXPR *expression;
 }AST_RETURN;
 typedef struct 
 {
