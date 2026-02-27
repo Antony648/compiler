@@ -33,9 +33,30 @@ int move_next()
 	}
 	return token_train_offset<token_count?token_train_offset:token_count-1;
 }
-void destroy_expression(AST_EXPR *temp)
+void destroy_expression(AST_EXPR *expr)
 {
+	if(!expr)
+		return;
+	if(expr->ast_exp_type==AST_IDEN_T)
+	{
+		if(expr->identifier)
+		{
+			if(expr->identifier->iden)
+				free(expr->identifier->iden);
+			free(expr->identifier);
+			expr->identifier=NULL;
+		}
+		
+	}
+	else if(expr->ast_exp_type==AST_BIN_EXPR_T)
+	{
+		destroy_expression(expr->expression.expr_l);
+		destroy_expression(expr->expression.expr_r);
 
+	}
+	free(expr);
+	expr=NULL;
+	return ;
 }
 void destroy_identifier(AST_IDEN *temp)
 {
@@ -177,13 +198,13 @@ AST_EXPR* get_expression(int mode)
 			break;
 		default:
 			printf("internal error in compiler; unknown mode value\n");
-			goto error_end;
+			return NULL;
 	}
 	AST_EXPR* temp=malloc(sizeof(AST_EXPR));
 	if(!temp)
 	{
 		printf("malloc failure");
-		goto error_end;
+		return NULL;
 	}
 	int start=token_train_offset, end,count=0;int init_line_no=parser_pov_lc;
 	int paranthesis_count=0;
@@ -193,7 +214,8 @@ AST_EXPR* get_expression(int mode)
 		if(token_train[token_train_offset].token_type==TOKEN_EOF)
 		{
 			printf("syntax error:line %d:expression not terminated reached end of file\n",parser_pov_lc);
-			goto error_end;
+			destroy_expression(temp);
+			return NULL;
 		}
 		if(token_train[token_train_offset].token_type==TOKEN_RPAR && end1==TOKEN_RPAR)
 		{
@@ -220,12 +242,14 @@ AST_EXPR* get_expression(int mode)
 	if(count==0)
 	{
 		printf("syntax error:line %d:no expression to evalulate\n",parser_pov_lc);
-		goto error_end;
+		destroy_expression(temp);
+		return NULL;
 	}
 	if(paranthesis_count)
 	{
 		printf("syntax error:line %d:may have originated from %d:imbalanced paranthesis",parser_pov_lc,init_line_no);
-		goto error_end;
+		destroy_expression(temp);
+		return NULL;
 	}
 	end=token_train_offset;
 	//now end contains the tokens till the end we want
@@ -248,7 +272,8 @@ AST_EXPR* get_expression(int mode)
 				if(!temp->identifier)
 				{
 					printf("malloc failure");
-					goto error_end;
+					destroy_expression(temp);
+					return NULL;
 				}
 				memset(temp->identifier,0,sizeof(AST_IDEN));
 				int len=strlen(token_train[start].id_str);
@@ -256,7 +281,8 @@ AST_EXPR* get_expression(int mode)
 				if(!temp->identifier->iden)
 				{
 					printf("malloc failure");
-					goto error_end;
+					destroy_expression(temp);
+					return NULL;
 				}
 				strncpy(temp->identifier->iden,token_train[start].id_str,len);
 				temp->identifier->iden[len]='\0';
@@ -274,7 +300,8 @@ AST_EXPR* get_expression(int mode)
 			}	
 			default:
 				printf("syntax error:line %d:invalid expression\n",parser_pov_lc);
-				goto error_end;
+				destroy_expression(temp);
+				return NULL;
 		}
 	}
 
@@ -315,7 +342,8 @@ AST_EXPR* get_expression(int mode)
 					{
 						if(push(postfix,&postfix_last,k,count))
 						{
-							goto error_end;
+							destroy_expression(temp);
+							return NULL;
 						}
 					}
 				}
@@ -339,7 +367,8 @@ AST_EXPR* get_expression(int mode)
             	{
             		if(push(stack,&stack_last,i,count))
             		{
-            			goto error_end;
+            			destroy_expression(temp);
+						return NULL;
             		}
             		break;
             	}
@@ -349,7 +378,10 @@ AST_EXPR* get_expression(int mode)
             		if(k>=0)
             		{
             			if(push(postfix,&postfix_last,k,count))
-            				goto error_end;
+            			{
+            				destroy_expression(temp);
+							return NULL;
+            			}
             		}
             		else 
             			break;
@@ -363,7 +395,8 @@ AST_EXPR* get_expression(int mode)
             default:
             {
          	 	printf("synatx error:line %d:may have occured from line %d:illegal token in expression",parser_pov_lc,init_line_no);
-            	goto error_end;
+            	destroy_expression(temp);
+				return NULL;
             }
         }
     }
@@ -372,7 +405,10 @@ AST_EXPR* get_expression(int mode)
     	int k=pop(stack,&stack_last);
     	if(k>=0)
     		if(push(postfix,&postfix_last,k,count))
-    			goto error_end;
+    		{
+    			destroy_expression(temp);
+				return NULL;
+    		}
     }
 	//postfix populated
 	//evaluate postfix	
@@ -516,6 +552,7 @@ AST_EXPR* get_expression(int mode)
 error_end:
 	return NULL;
 } 
+
 void destroy_parameters(AST_FUNC_PARAMS* first)
 {
 	if(!first)
