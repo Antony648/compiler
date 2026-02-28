@@ -1,7 +1,5 @@
 #include "parser.h"
 #include "lexer.h"
-#include <cstdio>
-#include <execution>
 #include <string.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -547,6 +545,7 @@ AST_EXPR* get_expression(int mode)
 		printf("internal error: improper computation of expression");
 		goto error_end;
 	}
+	token_train_offset--;// so that we endup
 	return expr_stack[expr_stack_index];
 
 error_end:
