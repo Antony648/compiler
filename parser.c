@@ -4,7 +4,15 @@
 #include <stdbool.h>
 #include <stdio.h>
 void destroyed_code_block(AST_CODE_BLOCK* code_block);
-
+void destroy_decclaration(AST_DEC* );
+void destroy_function(AST_FUNC*);
+void destroy_function_call(AST_FUNC_CALL*);
+void destroy_identifier(AST_IDEN* );
+void destroy_init(AST_INIT*);
+void destroy_assignment(AST_ASSIGN*);
+void destroy_if(AST_IF_CASE*);
+void destroy_while(AST_WHILE_CASE*);
+void destroy_for(AST_FOR_CASE*);
 int token_train_offset=0;
 int parser_pov_lc=1;
 int seek_next()
@@ -23,7 +31,7 @@ int seek_mulitple(int val)
 }
 int move_next()
 {
-	token_train_offset+=token_train_offset;
+	token_train_offset+=1;
 	while(token_train_offset <token_count && token_train[token_train_offset].token_type==TOKEN_NEW_LINE)
 	{
 		token_train_offset+=1;
@@ -81,7 +89,33 @@ AST_DEC_T,
 	AST_FOR_T,
 	AST_FUNC_T,
 	AST_NEW_LINE_T,*/	
-
+	if(!statement)
+		return;
+	switch(statement->statement_type)
+	{
+		case AST_DEC_T:
+			destroy_decclaration(statement->dec_statement);
+			break;
+        case AST_INIT_T:
+        	destroy_init(statement->init_statement);
+        	break;
+        case AST_ASSIGN_T:
+        	destroy_assignment(statement->assign_statement);
+        	break;
+        case AST_IF_CASE_T:
+        	destroy_if(statement->if_statement);
+        	break;
+        case AST_WHILE_CASE_T:
+        	destroy_while(statement->while_statement);
+        	break;
+        case AST_FOR_T:
+        	destroy_for(statement->for_statement);
+        	break;
+        case AST_FUNC_T:
+        case AST_FUNC_CALL_T:
+        case AST_RETURN_T:
+          break;
+                }
 }
 void destroy_statement_loop(AST_STATEMENT* statement)
 {
@@ -852,6 +886,19 @@ error_end:
 	return NULL;
 
 }
+void destroy_init(AST_INIT* temp)
+{
+	if(!temp )
+		return;
+	if(temp->identifier)
+		destroy_identifier(temp->identifier);
+	if(temp->expression)
+		destroy_expression(temp->expression);
+	
+	free(temp);
+	temp=NULL;
+	
+}
 AST_INIT* get_init()
 {
 	AST_DATA_TYPES temp_dt=0;
@@ -920,15 +967,7 @@ AST_INIT* get_init()
 	move_next();//semicolon consume
 	return temp;
 error_end:
-	if(temp->identifier)
-		destroy_identifier(temp->identifier);
-	if(temp->expression)
-		destroy_expression(temp->expression);
-	if(temp)
-	{
-		free(temp);
-		temp=NULL;
-	}
+	destroy_init(temp);
 	return temp;
 }
 
@@ -998,6 +1037,19 @@ error_end:
 	destroy_assignment(temp);
 	return NULL;
 }
+void destroy_if(AST_IF_CASE *temp)
+{
+	if(!temp)
+		return;
+	if(temp->test_case_expression)
+		destroy_expression(temp->test_case_expression);
+	if(temp->code_block)
+		destroy_code_block(temp->code_block);
+	
+	free(temp);
+	temp=NULL;
+	
+}
 AST_IF_CASE* get_if(){
 	if(token_train[token_train_offset].token_type!=TOKEN_IF)
 	{
@@ -1051,18 +1103,22 @@ AST_IF_CASE* get_if(){
 	move_next();	//rbrace
 	return temp;
 error_end:
+	destroy_if(temp);
+	return NULL;
+}
+void destroy_while(AST_WHILE_CASE* temp)
+{
+	if(!temp)
+		return;
 	if(temp->test_case_expression)
 		destroy_expression(temp->test_case_expression);
 	if(temp->code_block)
 		destroy_code_block(temp->code_block);
-	if(temp)
-	{
-		free(temp);
-		temp=NULL;
-	}
-	return NULL;
+	
+	free(temp);
+	temp=NULL;
+	
 }
-
 AST_WHILE_CASE* get_while(){
 	if(token_train[token_train_offset].token_type!=TOKEN_WHILE)
 	{
@@ -1112,15 +1168,7 @@ AST_WHILE_CASE* get_while(){
 	move_next();	//consume rbace
 	return temp;
 error_end:
-	if(temp->test_case_expression)
-		destroy_expression(temp->test_case_expression);
-	if(temp->code_block)
-		destroy_code_block(temp->code_block);
-	if(temp)
-	{
-		free(temp);
-		temp=NULL;
-	}
+	destroy_while(temp);
 	return NULL;
 }
 AST_STATEMENT* get_for_implict_assign()
@@ -1556,6 +1604,16 @@ error_end:
 	return NULL;
 
 }
+void destroy_decclaration(AST_DEC* temp)
+{
+	if(temp->identifier)
+		destroy_identifier(temp->identifier);
+	if(temp)
+	{
+		free(temp);
+		temp=NULL;
+	}
+}
 AST_DEC* get_decclaration()
 {
 
@@ -1612,15 +1670,17 @@ AST_DEC* get_decclaration()
 	return  temp;
 
 error_end:
-	if(temp->identifier)
-		destroy_identifier(temp->identifier);
-	if(temp)
-	{
-		free(temp);
-		temp=NULL;
-	}
-	return temp;
+	destroy_decclaration(temp);
+	return NULL;
 
+}
+void destroy_return(AST_RETURN* temp)
+{
+	if(!temp)
+		return ;
+	if(temp->expression)
+		destroy_expression(temp->expression);
+	free(temp);
 }
 AST_RETURN* get_return()
 {
@@ -1649,11 +1709,7 @@ AST_RETURN* get_return()
 	move_next();
 	return temp;
 error_end:
-	if(!temp)
-		return NULL;
-	if(temp->expression)
-		destroy_expression(temp->expression);
-	free(temp);
+	destroy_return(temp);
 	temp=NULL;
 	return NULL;
 }
@@ -1672,7 +1728,7 @@ AST_DEC_T,
 	if(!temp)
 	{
 		printf("malloc failure");
-		return NULL;
+		return -1;
 	}
 	memset(temp,0,sizeof(AST_STATEMENT));
 	temp->line_number=parser_pov_lc;
@@ -1786,7 +1842,18 @@ error_end:
 }
 void destroyed_code_block(AST_CODE_BLOCK* code_block)
 {
-
+	if(code_block)
+		return;
+	AST_STATEMENT* temp;
+	temp =code_block->statement;
+	while(temp)
+	{
+		AST_STATEMENT *temp2=temp->next;
+		destroy_statement(temp);
+		temp=temp2;
+	}
+	free(code_block);
+	return ;
 }
 AST_CODE_BLOCK* get_code_block(token_t end)
 {
@@ -1832,5 +1899,6 @@ AST_CODE_BLOCK* get_code_block(token_t end)
 		}
 		temp=temp->next;
 	}
+	return prgm;
 
 }

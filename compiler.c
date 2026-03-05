@@ -1,4 +1,5 @@
 #include "lexer.h"
+#include "parser.h"
 #include <fcntl.h>
 #include <stdio.h>
 
@@ -20,7 +21,14 @@ int main(int argc,char* argv[])
 	}
 	init_token_train();
 	populate_token_train(file_ptr);
-
+	AST_CODE_BLOCK* ast_tree=get_code_block(TOKEN_EOF);
+	if(!ast_tree)
+	{
+		printf("failure in generation ast tree.\n");
+		goto error_end;
+	}
+	destroy_code_block(ast_tree);
+error_end:
 	destroy_token_train();
 	fclose(file_ptr);
 	
