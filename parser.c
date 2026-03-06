@@ -767,12 +767,14 @@ AST_FUNC* get_function()
 	}
 	move_next();//start of block
 	temp->code_block=get_code_block(TOKEN_RBRACE);
+	/*
 	if(token_train[token_train_offset].token_type!=TOKEN_RBRACE)
 	{
 		printf("syntax error:line %d:function body not concluded properly\n",parser_pov_lc);
 		goto error_end;
 	}
 	move_next();
+	*/
 	return temp;
 error_end:
 	destroy_function(temp);
@@ -1611,12 +1613,14 @@ AST_FOR_CASE* get_for(){
 		goto error_end;
 	}
 	//move_next();
+	/*
 	if(token_train[token_train_offset].token_type!=TOKEN_RBRACE)
 	{
 		printf("syntax error: line %d:code block does not end in rbace\n",parser_pov_lc);
 		goto error_end;
 	}
 	//move_next()
+	*/
 	return temp;
 error_end:
 	destroy_for(temp);
@@ -1710,8 +1714,11 @@ AST_RETURN* get_return()
 		return NULL;
 	}
 	memset(temp,0,sizeof(AST_RETURN));
-	if(token_train[seek_next()].token_type!=TOKEN_SEMICOLON)
+	if(token_train[seek_next()].token_type==TOKEN_SEMICOLON)
+	{
+		move_next();move_next();
 		return temp;
+	}
 	move_next();
 	temp->expression=get_expression(1);
 	if(!temp->expression)
@@ -1786,8 +1793,8 @@ AST_DEC_T,
 				default:
 					goto error_end;
 			}
-			break;
-		}
+			break
+;		}
 		case TOKEN_ID:
 		{
 			
@@ -1842,12 +1849,14 @@ AST_DEC_T,
 				goto error_end;
 			break;
 		}
+		/*case TOKEN_EOF:
+
 		case TOKEN_RBRACE:
 		{
 			//end of block 
 			free(temp);
 			return 2;
-		}
+		}*/
 		default:
 		{
 			goto error_end;
@@ -1892,8 +1901,9 @@ AST_CODE_BLOCK* get_code_block(token_t end)
 	}
 	memset(prgm,0,sizeof(AST_CODE_BLOCK));
 	prgm->code_block_type=AST_PROGRAM;
-	if(token_train[seek_next()].token_type==end || token_train[seek_next()].token_type==TOKEN_EOF)
+	if(token_train[token_train_offset].token_type==end || token_train[token_train_offset].token_type==TOKEN_EOF)
 	{
+		move_next();
 		return prgm;
 	}
 
@@ -1907,8 +1917,9 @@ AST_CODE_BLOCK* get_code_block(token_t end)
 	int rtn_val=0;
 	while(temp)
 	{
-		if(token_train[seek_next()].token_type==end || token_train[seek_next()].token_type==TOKEN_EOF)
+		if(token_train[token_train_offset].token_type==end || token_train[token_train_offset].token_type==TOKEN_EOF)
 		{
+			move_next();
 			return prgm;
 		}
 		rtn_val=get_statement(&temp->next);
@@ -1924,10 +1935,10 @@ AST_CODE_BLOCK* get_code_block(token_t end)
 				exit(1);
 			}
 		}
-		if(rtn_val==2)
-			break;
+		
 		temp=temp->next;
 	}
+	move_next();
 	return prgm;
 
 }
