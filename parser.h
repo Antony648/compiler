@@ -165,5 +165,5 @@ struct ast_code_block
 	AST_STATEMENT *statement;
 };
 AST_CODE_BLOCK* get_code_block(token_t );
-
+void destroy_code_block(AST_CODE_BLOCK* code_block);
 #endif

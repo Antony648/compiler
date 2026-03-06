@@ -13,6 +13,7 @@ void destroy_assignment(AST_ASSIGN*);
 void destroy_if(AST_IF_CASE*);
 void destroy_while(AST_WHILE_CASE*);
 void destroy_for(AST_FOR_CASE*);
+void destroy_return(AST_RETURN*);
 int token_train_offset=0;
 int parser_pov_lc=1;
 int seek_next()
@@ -96,26 +97,37 @@ AST_DEC_T,
 		case AST_DEC_T:
 			destroy_decclaration(statement->dec_statement);
 			break;
-        case AST_INIT_T:
-        	destroy_init(statement->init_statement);
-        	break;
-        case AST_ASSIGN_T:
-        	destroy_assignment(statement->assign_statement);
-        	break;
-        case AST_IF_CASE_T:
-        	destroy_if(statement->if_statement);
-        	break;
-        case AST_WHILE_CASE_T:
-        	destroy_while(statement->while_statement);
-        	break;
-        case AST_FOR_T:
-        	destroy_for(statement->for_statement);
-        	break;
-        case AST_FUNC_T:
-        case AST_FUNC_CALL_T:
-        case AST_RETURN_T:
-          break;
-                }
+    case AST_INIT_T:
+    	destroy_init(statement->init_statement);
+    	break;
+    case AST_ASSIGN_T:
+    	destroy_assignment(statement->assign_statement);
+    	break;
+    case AST_IF_CASE_T:
+    	destroy_if(statement->if_statement);
+    	break;
+    case AST_WHILE_CASE_T:
+    	destroy_while(statement->while_statement);
+    	break;
+    case AST_FOR_T:
+    	destroy_for(statement->for_statement);
+    	break;
+    case AST_FUNC_T:
+    	destroy_function(statement->func_statement);
+    	break;
+    case AST_FUNC_CALL_T:
+    	destroy_function_call(statement->func_call);
+    	break;
+    case AST_RETURN_T:
+    	destroy_return(statement->return_statement);
+      break;
+    case AST_NULL_T:
+    	printf("internal error:illegal ast tree elem, or uninitailized element\n");
+    	break;
+   }
+   free(statement);
+   statement=NULL;
+   return;
 }
 void destroy_statement_loop(AST_STATEMENT* statement)
 {
@@ -251,9 +263,10 @@ AST_EXPR* get_expression(int mode)
 		}
 		if(token_train[token_train_offset].token_type==TOKEN_RPAR && end1==TOKEN_RPAR)
 		{
-			if(paranthesis_count)
+			if(!paranthesis_count)
 			{
-				//paranthesis count non zero exit
+				//paranthesis count zero exit
+				//if zero no lpar before so exit
 				break;
 			}
 			else
@@ -279,7 +292,7 @@ AST_EXPR* get_expression(int mode)
 	}
 	if(paranthesis_count)
 	{
-		printf("syntax error:line %d:may have originated from %d:imbalanced paranthesis",parser_pov_lc,init_line_no);
+		printf("syntax error:line %d:may have originated from %d:imbalanced paranthesis\n",parser_pov_lc,init_line_no);
 		destroy_expression(temp);
 		return NULL;
 	}
@@ -328,6 +341,7 @@ AST_EXPR* get_expression(int mode)
 			{	
 				temp->ast_exp_type=AST_VAL_T;
 				temp->value=token_train[start].value;
+				token_train_offset--;
 				return temp;
 			}	
 			default:
@@ -357,12 +371,14 @@ AST_EXPR* get_expression(int mode)
 			case TOKEN_INT_VAL:
 			case TOKEN_ID:
 			{
-				postfix[postfix_last++]=i;
+				//postfix[postfix_last++]=i;
+				push(postfix,&postfix_last,i,count+1);
 				break;
 			}
 			case TOKEN_LPAR:
 			{
-				stack[stack_last++]=i;
+				//stack[stack_last++]=i;
+				push(stack,&stack_last,i,count);
 				break;
 			}
 			case TOKEN_RPAR:
@@ -395,7 +411,7 @@ AST_EXPR* get_expression(int mode)
             case TOKEN_LESS_THAN_EQUAL:
             case TOKEN_GREATER_THAN_EQUAL:
             {
-            	if(get_priority(token_train[i].token_type)>get_priority(token_train[stack[stack_last]].token_type))
+            	if(stack_last <0 || get_priority(token_train[i].token_type)>get_priority(token_train[stack[stack_last]].token_type))
             	{
             		if(push(stack,&stack_last,i,count))
             		{
@@ -412,7 +428,7 @@ AST_EXPR* get_expression(int mode)
             			if(push(postfix,&postfix_last,k,count))
             			{
             				destroy_expression(temp);
-							return NULL;
+										return NULL;
             			}
             		}
             		else 
@@ -1026,7 +1042,7 @@ AST_ASSIGN* get_assignment()
 		goto error_end;		
 	}
 	move_next();
-	if(token_train[token_train_offset].token_type==TOKEN_SEMICOLON)
+	if(token_train[token_train_offset].token_type!=TOKEN_SEMICOLON)
 	{
 		printf("syntax error:line %d:no ending semicolon\n",parser_pov_lc);
 		goto error_end;
@@ -1212,19 +1228,19 @@ AST_STATEMENT* get_for_implict_assign()
 	move_next();
 	if(token_train[token_train_offset].token_type!=TOKEN_ASSIGN)
 	{
-		printf("syntax error:line %d:no assignment operator after identifier in for implict",parser_pov_lc);
+		printf("syntax error:line %d:no assignment operator after identifier in for_implict\n",parser_pov_lc);
 		goto error_end;
 	}
 	move_next();
 	temp->assign_statement->expresssion=get_expression(3);	//should stop at LPAR  also
 	if(!temp->assign_statement->expresssion)
 	{
-		printf("syntax error:line %d:assignment operator not followd by proper expression for implict",parser_pov_lc);
+		printf("syntax error:line %d:assignment operator not followd by proper expression for_implict\n",parser_pov_lc);
 		goto error_end;
 	}
 	switch(token_train[seek_next()].token_type)
 	{
-	case TOKEN_LPAR:
+	case TOKEN_RPAR:
 		{
 			return temp;
 		}
@@ -1235,7 +1251,7 @@ AST_STATEMENT* get_for_implict_assign()
 		}
 	default:
 		{
-			printf("syntax error:line %d:assignment statement does not end properly in for implict",parser_pov_lc);
+			printf("syntax error:line %d:assignment statement does not end properly in for_implict\n",parser_pov_lc);
 			goto error_end;
 		}
 	}
@@ -1504,6 +1520,7 @@ AST_CODE_BLOCK* get_for_init()
 		printf("syntax error:line %d:no semi colon after init",parser_pov_lc);
 		goto error_end;
 	}
+	move_next();
 	return first;
 error_end:
 	if(first)
@@ -1532,7 +1549,7 @@ void destroy_for(AST_FOR_CASE* temp)
 AST_FOR_CASE* get_for(){
 	if(token_train[token_train_offset].token_type !=TOKEN_FOR)
 	{
-		printf("syntax error ");
+		printf("syntax error\n");
 		return NULL;
 	}
 	move_next();
@@ -1586,18 +1603,20 @@ AST_FOR_CASE* get_for(){
 		printf("syntax error:line %d: for code block does not start with lbrace\n",parser_pov_lc);
 		goto error_end;
 	}
+	move_next(); //added this because we are expected to be inside code block
 	temp->code_block=get_code_block(TOKEN_RBRACE);
 	if(!temp->code_block)
 	{
 		printf("failure in gettin code block");
 		goto error_end;
 	}
-	move_next();
+	//move_next();
 	if(token_train[token_train_offset].token_type!=TOKEN_RBRACE)
 	{
 		printf("syntax error: line %d:code block does not end in rbace\n",parser_pov_lc);
 		goto error_end;
 	}
+	//move_next()
 	return temp;
 error_end:
 	destroy_for(temp);
@@ -1767,7 +1786,7 @@ AST_DEC_T,
 				default:
 					goto error_end;
 			}
-			
+			break;
 		}
 		case TOKEN_ID:
 		{
@@ -1823,6 +1842,12 @@ AST_DEC_T,
 				goto error_end;
 			break;
 		}
+		case TOKEN_RBRACE:
+		{
+			//end of block 
+			free(temp);
+			return 2;
+		}
 		default:
 		{
 			goto error_end;
@@ -1833,7 +1858,7 @@ AST_DEC_T,
 	*statement=temp;
 	return 0;
 error_end:
-	printf("syntax error in line %d\n",parser_pov_lc);
+	printf("syntax error:line %d:unrecognized statement start\n",parser_pov_lc);
 	if(temp)
 		free(temp);
 	*statement=NULL;
@@ -1871,6 +1896,7 @@ AST_CODE_BLOCK* get_code_block(token_t end)
 	{
 		return prgm;
 	}
+
 	if(get_statement(&prgm->statement)<0)
 	{
 		printf("error:no content in input file\n");
@@ -1889,6 +1915,7 @@ AST_CODE_BLOCK* get_code_block(token_t end)
 		switch(rtn_val)
 		{
 			case 0:	
+			case 2:
 				break;
 			case -1:
 			{
@@ -1897,6 +1924,8 @@ AST_CODE_BLOCK* get_code_block(token_t end)
 				exit(1);
 			}
 		}
+		if(rtn_val==2)
+			break;
 		temp=temp->next;
 	}
 	return prgm;
