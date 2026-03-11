@@ -1202,6 +1202,7 @@ AST_STATEMENT* get_for_implict_assign()
 		printf("failure in malloc");
 		return NULL;
 	}
+	memset(temp,0,sizeof(AST_STATEMENT));
 	temp->statement_type=AST_ASSIGN_T;
 	temp->assign_statement=malloc(sizeof(AST_ASSIGN));
 	if(!temp->assign_statement)
@@ -1277,6 +1278,7 @@ AST_CODE_BLOCK* get_for_implict()
 		printf("malloc failure");
 		return NULL;
 	}
+	memset(first,0,sizeof(AST_CODE_BLOCK));
 	first->statement=get_for_implict_assign();
 	AST_STATEMENT* temp=first->statement;
 	if(!temp)
@@ -1684,8 +1686,11 @@ AST_DEC* get_decclaration()
 				printf("syntax error:line %d:decclaration with no semicolon\n",parser_pov_lc );
 				goto error_end;
 			}
+			move_next();
+			break;
 		}
 		//can add other data types here
+
 		default:
 			printf("syntax error:line %d:unrecognized data type for decclaration",parser_pov_lc);
 			goto error_end;
