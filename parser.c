@@ -420,7 +420,7 @@ AST_EXPR* get_expression(int mode)
             		}
             		break;
             	}
-            	while(get_priority(token_train[i].token_type)<=get_priority(token_train[stack[stack_last]].token_type))
+            	while(stack_last <0 || get_priority(token_train[i].token_type)<=get_priority(token_train[stack[stack_last]].token_type))
             	{
             		int k=pop(stack,&stack_last);
             		if(k>=0)
@@ -1279,6 +1279,11 @@ AST_CODE_BLOCK* get_for_implict()
 		return NULL;
 	}
 	memset(first,0,sizeof(AST_CODE_BLOCK));
+	if(token_train[token_train_offset].token_type==TOKEN_RPAR)
+	{
+		token_train_offset-=1; //patch
+		return first;
+	}
 	first->statement=get_for_implict_assign();
 	AST_STATEMENT* temp=first->statement;
 	if(!temp)
@@ -1288,6 +1293,7 @@ AST_CODE_BLOCK* get_for_implict()
 	}
 	while(token_train[seek_next()].token_type!=TOKEN_RPAR && token_train[seek_next()].token_type!=TOKEN_EOF)
 	{
+		move_next();
 		temp->next=get_for_implict_assign();
 		if(!temp->next)
 		{
@@ -1383,13 +1389,7 @@ AST_INIT* get_for_init_init(token_t tok_t)
 		goto error_end;
 	}
 	memset(temp->identifier,0,sizeof(AST_IDEN));
-	temp->expression=malloc(sizeof(AST_EXPR));
-	if(!temp->expression)
-	{
-		printf("faliure in malloc");
-		goto error_end;
-	}
-	memset(temp->expression,0,sizeof(AST_EXPR));
+	
 	switch(tok_t)
 	{
 		case TOKEN_INT:
@@ -1427,8 +1427,10 @@ AST_INIT* get_for_init_init(token_t tok_t)
 		printf("syntax error:line %d:error in getting expression \n",parser_pov_lc);
 		goto error_end;
 	}
+	
 	if(token_train[seek_next()].token_type==TOKEN_SEMICOLON)
 	{
+
 		return  temp;
 	}	
 	move_next();
@@ -1437,6 +1439,8 @@ AST_INIT* get_for_init_init(token_t tok_t)
 		printf("syntax error:line %d:no comma separation after expresssion\n",parser_pov_lc);
 		goto error_end;
 	}
+	
+	
 	return temp;
 error_end:
 	if(temp->expression)
@@ -1448,6 +1452,7 @@ error_end:
 		free(temp);
 		temp=NULL;
 	}
+
 	return temp;
 }
 AST_STATEMENT* get_for_statement_init()
@@ -1501,6 +1506,11 @@ AST_CODE_BLOCK* get_for_init()
 	}
 	memset(first,0,sizeof(AST_CODE_BLOCK));
 	//AST_CODE_BLOCK *temp=first;
+	if(token_train[token_train_offset].token_type==TOKEN_SEMICOLON)
+	{
+		move_next();
+		return first;
+	}
 	first->statement=get_for_statement_init();
 	AST_STATEMENT *temp=first->statement;
 	if(!temp)
@@ -1510,6 +1520,7 @@ AST_CODE_BLOCK* get_for_init()
 	}
 	while(token_train[seek_next()].token_type!=TOKEN_SEMICOLON && token_train[seek_next()].token_type!=TOKEN_EOF)
 	{
+		move_next();
 		temp->next=get_for_statement_init();
 		if(!temp->next)
 		{
