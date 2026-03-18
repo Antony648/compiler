@@ -363,7 +363,7 @@ AST_EXPR* get_expression(int mode)
 		stack[i] =-1;
 		postfix[i]=-1;
 	}
-		
+	postfix[count]=-1;	
 	for(int i=start;i<end;i++)
 	{
 		switch(token_train[i].token_type)
@@ -411,16 +411,8 @@ AST_EXPR* get_expression(int mode)
             case TOKEN_LESS_THAN_EQUAL:
             case TOKEN_GREATER_THAN_EQUAL:
             {
-            	if(stack_last <0 || get_priority(token_train[i].token_type)>get_priority(token_train[stack[stack_last]].token_type))
-            	{
-            		if(push(stack,&stack_last,i,count))
-            		{
-            			destroy_expression(temp);
-						return NULL;
-            		}
-            		break;
-            	}
-            	while(stack_last <0 || get_priority(token_train[i].token_type)<=get_priority(token_train[stack[stack_last]].token_type))
+            	
+            	while(stack_last >-1 && get_priority(token_train[i].token_type)<=get_priority(token_train[stack[stack_last]].token_type))
             	{
             		int k=pop(stack,&stack_last);
             		if(k>=0)
@@ -434,7 +426,15 @@ AST_EXPR* get_expression(int mode)
             		else 
             			break;
             	}
-            	break;
+            	if(stack_last<=-1 ||  get_priority(token_train[i].token_type)>get_priority(token_train[stack[stack_last]].token_type))
+            	{
+            		if(push(stack,&stack_last,i,count))
+            		{
+            			destroy_expression(temp);
+									return NULL;
+            		}
+            		break;
+            	}
             }
             case TOKEN_NEW_LINE:
       			continue;
@@ -500,7 +500,7 @@ AST_EXPR* get_expression(int mode)
 				{
 					goto error_end;
 				}
-				continue;;
+				continue;
 			}
 			case TOKEN_INT_VAL:
 			{
@@ -592,13 +592,18 @@ AST_EXPR* get_expression(int mode)
 	//after this we should only have a single element in our expr_stack
 	if(expr_stack_index!=0)
 	{
-		printf("internal error: improper computation of expression");
+		printf("internal error: improper computation of expression\n");
 		goto error_end;
 	}
 	token_train_offset--;// so that we endup
 	return expr_stack[expr_stack_index];
 
 error_end:
+	for(int i=0;expr_stack[i];i++)
+	{
+		destroy_expression(expr_stack[i]);
+		expr_stack[i]=NULL;
+	}
 	return NULL;
 } 
 
