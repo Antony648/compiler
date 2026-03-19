@@ -608,7 +608,7 @@ error_end:
 	return NULL;
 } 
 
-void destroy_parameters(AST_FUNC_PARAMS* first)
+void destroy_parameters(AST_FUNC_PARAMS* first, int count)
 {
 	if(!first)
 		return;
@@ -621,6 +621,7 @@ void destroy_parameters(AST_FUNC_PARAMS* first)
 		temp=first->next;
 		free(first);
 		first=temp;
+		count--;
 	}
 	return;
 }
@@ -633,7 +634,7 @@ void destroy_function(AST_FUNC *temp)
 	if(temp->code_block)
 		destroy_code_block(temp->code_block);
 	if(temp->paramters_list)
-		destroy_parameters(temp->paramters_list);
+		destroy_parameters(temp->paramters_list,temp->parameter_count);
 	free(temp);
 	temp=NULL;
 	return;
@@ -794,7 +795,7 @@ void destroy_function_call(AST_FUNC_CALL * temp)
 	if(temp->identifier)
 		destroy_identifier(temp->identifier);
 	if(temp->paramters_list)
-		destroy_parameters(temp->paramters_list);
+		destroy_parameters(temp->paramters_list,temp->parameter_count);
 	free(temp);
 }
 AST_FUNC_CALL* get_function_call()
@@ -839,8 +840,10 @@ AST_FUNC_CALL* get_function_call()
 		printf("malloc errro");
 		goto error_end;
 	}
+	memset(temp->paramters_list,0,sizeof(AST_FUNC_PARAMS));
 	AST_FUNC_PARAMS *temp2=temp->paramters_list;
 	temp->parameter_count = 0;
+	move_next();
 	while(token_train[token_train_offset].token_type!=TOKEN_RPAR)
 	{
 		if(token_train[token_train_offset].token_type!=TOKEN_ID)
