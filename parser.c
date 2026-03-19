@@ -272,7 +272,10 @@ AST_EXPR* get_expression(int mode)
 					break;
 				}
 				else
+				{
 					paranthesis_count--;
+					goto rpar_exit;
+				}
 			}
 			else
 				paranthesis_count--;
@@ -285,7 +288,7 @@ AST_EXPR* get_expression(int mode)
 		}
 		if(token_train[token_train_offset].token_type==TOKEN_LPAR)
 				paranthesis_count++;
-		
+rpar_exit:	
 		count++;
 		move_next();
 	}
@@ -527,34 +530,34 @@ AST_EXPR* get_expression(int mode)
 			case TOKEN_ADD:
 				bin_ops=AST_ADD_T;
 				break;
-            case TOKEN_SUB:
-            	bin_ops=AST_SUB_T;
-            	break;
-            case TOKEN_MUL:
-            	bin_ops=AST_MUL_T;
-            	break;
-            case TOKEN_DIV:
-            	bin_ops=AST_DIV_T;
-            	break;
-            case TOKEN_EQUAL:
-            	bin_ops=AST_EQ_T;
-            	break;
-            case TOKEN_NEQUAL:
-            	bin_ops=AST_NEQ_T;
-            	break;
-            case TOKEN_LESS_THAN:
-            	bin_ops=AST_LESS_T;
-            	break;
-            case TOKEN_GREATER_THAN:
-            	bin_ops=AST_GREAT_T;
-            	break;
-            case TOKEN_LESS_THAN_EQUAL:
-            	bin_ops=AST_LEQ_T;
-            	break;
-            case TOKEN_GREATER_THAN_EQUAL:
-            	bin_ops=AST_GEQ_T;
-            	break;
-           
+      case TOKEN_SUB:
+      	bin_ops=AST_SUB_T;
+      	break;
+      case TOKEN_MUL:
+      	bin_ops=AST_MUL_T;
+      	break;
+      case TOKEN_DIV:
+      	bin_ops=AST_DIV_T;
+      	break;
+      case TOKEN_EQUAL:
+      	bin_ops=AST_EQ_T;
+      	break;
+      case TOKEN_NEQUAL:
+      	bin_ops=AST_NEQ_T;
+      	break;
+      case TOKEN_LESS_THAN:
+      	bin_ops=AST_LESS_T;
+      	break;
+      case TOKEN_GREATER_THAN:
+      	bin_ops=AST_GREAT_T;
+      	break;
+      case TOKEN_LESS_THAN_EQUAL:
+      	bin_ops=AST_LEQ_T;
+      	break;
+      case TOKEN_GREATER_THAN_EQUAL:
+      	bin_ops=AST_GEQ_T;
+      	break;
+     
 			default:
 			{
 				printf("syntax error:illegal character in %d",parser_pov_lc);
