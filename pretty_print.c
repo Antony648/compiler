@@ -82,6 +82,7 @@ void print_for(AST_FOR_CASE* param1){
 }
 void print_fucntion_params(AST_FUNC_PARAMS* param1)
 {
+	printf("function params:\n");
 	while(param1 && param1->identifier)
 	{
           switch (param1->identifier->data_type) 

@@ -704,7 +704,7 @@ AST_FUNC* get_function()
 		AST_DATA_TYPES datatype=AST_DATA_TYPES_NULL;
 		switch(token_train[token_train_offset].token_type)
 		{
-			TOKEN_INT:
+			case TOKEN_INT:
 				datatype=AST_INT_T;
 			//add other data types later
 				break;
@@ -738,7 +738,7 @@ AST_FUNC* get_function()
 		temp->parameter_count+=1;
 		switch (token_train[seek_next()].token_type) 
 		{
-			TOKEN_COMMA:
+			case TOKEN_COMMA:
 				if(token_train[seek_mulitple(2)].token_type==TOKEN_RPAR)
 				{
 					printf("syntax error:line %d:inside param block comma not followed by data type\n",parser_pov_lc);
@@ -746,7 +746,7 @@ AST_FUNC* get_function()
 				}
 				move_next();
 				break;
-			TOKEN_RPAR:
+			case TOKEN_RPAR:
 				move_next();
 				continue;
 			default:
