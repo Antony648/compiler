@@ -80,12 +80,12 @@ void print_for(AST_FOR_CASE* param1){
 	return;
 
 }
-void print_fucntion_params(AST_FUNC_PARAMS* param1)
+void print_fucntion_params(AST_FUNC_PARAMS* paramlist,int count)
 {
 	printf("function params:\n");
-	while(param1 && param1->identifier)
+	while(  paramlist && paramlist->identifier)
 	{
-          switch (param1->identifier->data_type) 
+          switch (paramlist->identifier->data_type) 
           {
 	          case AST_DATA_TYPES_NULL:
 	          	printf("illegal data type null");
@@ -94,20 +94,21 @@ void print_fucntion_params(AST_FUNC_PARAMS* param1)
 	          	printf("datatype:int:");
 	            break;
           }
-			printf("name:%s\n",param1->identifier->iden);
-		param1=param1->next;
+			printf("name:%s\n",paramlist->identifier->iden);
+		paramlist=paramlist->next;
+		count--;
 	}
 }
 void print_function(AST_FUNC* param1){
 	printf("function:%s\n",param1->identifier->iden);
-	print_fucntion_params(param1->paramters_list);
+	print_fucntion_params(param1->paramters_list,param1->parameter_count);
 	printf("code block\n");
 	pretty_print(param1->code_block);
 	return;
 }
 void print_function_call(AST_FUNC_CALL* param1){
 	printf("function call:%s\n",param1->identifier->iden);
-	print_fucntion_params(param1->paramters_list);
+	print_fucntion_params(param1->paramters_list,param1->parameter_count);
 	return;
 }
 void print_retrun(AST_RETURN* param1){

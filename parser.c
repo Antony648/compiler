@@ -261,13 +261,18 @@ AST_EXPR* get_expression(int mode)
 			destroy_expression(temp);
 			return NULL;
 		}
-		if(token_train[token_train_offset].token_type==TOKEN_RPAR && end1==TOKEN_RPAR)
+		if(token_train[token_train_offset].token_type==TOKEN_RPAR )
 		{
-			if(!paranthesis_count)
+			if(end1==TOKEN_RPAR)
 			{
-				//paranthesis count zero exit
-				//if zero no lpar before so exit
-				break;
+				if(!paranthesis_count)
+				{
+					//paranthesis count zero exit
+					//if zero no lpar before so exit
+					break;
+				}
+				else
+					paranthesis_count--;
 			}
 			else
 				paranthesis_count--;
@@ -383,7 +388,7 @@ AST_EXPR* get_expression(int mode)
 			}
 			case TOKEN_RPAR:
 			{
-				while( stack_last>=0 && token_train[stack[stack_last]].token_type!=TOKEN_RPAR )
+				while( stack_last>=0 && token_train[stack[stack_last]].token_type!=TOKEN_LPAR )
 				{
 					int k=pop(stack,&stack_last);
 					if(k>=0)
@@ -395,59 +400,60 @@ AST_EXPR* get_expression(int mode)
 						}
 					}
 				}
-				if(token_train[stack[stack_last]].token_type==TOKEN_RPAR)
+				if(token_train[stack[stack_last]].token_type==TOKEN_LPAR)
 				{
 					 pop(stack,&stack_last);
 				}
+				break;
 			}
-            case TOKEN_ADD:
-            case TOKEN_SUB:
-            case TOKEN_MUL:
-            case TOKEN_DIV:
-            case TOKEN_EQUAL:
-            case TOKEN_NEQUAL:
-            case TOKEN_LESS_THAN:
-            case TOKEN_GREATER_THAN:
-            case TOKEN_LESS_THAN_EQUAL:
-            case TOKEN_GREATER_THAN_EQUAL:
-            {
-            	
-            	while(stack_last >-1 && get_priority(token_train[i].token_type)<=get_priority(token_train[stack[stack_last]].token_type))
-            	{
-            		int k=pop(stack,&stack_last);
-            		if(k>=0)
-            		{
-            			if(push(postfix,&postfix_last,k,count))
-            			{
-            				destroy_expression(temp);
-										return NULL;
-            			}
-            		}
-            		else 
-            			break;
-            	}
-            	if(stack_last<=-1 ||  get_priority(token_train[i].token_type)>get_priority(token_train[stack[stack_last]].token_type))
-            	{
-            		if(push(stack,&stack_last,i,count))
-            		{
-            			destroy_expression(temp);
-									return NULL;
-            		}
-            		break;
-            	}
-            }
-            case TOKEN_NEW_LINE:
-      			continue;
-            
-                        
-            default:
-            {
-         	 	printf("synatx error:line %d:may have occured from line %d:illegal token in expression",parser_pov_lc,init_line_no);
-            	destroy_expression(temp);
+      case TOKEN_ADD:
+      case TOKEN_SUB:
+      case TOKEN_MUL:
+      case TOKEN_DIV:
+      case TOKEN_EQUAL:
+      case TOKEN_NEQUAL:
+      case TOKEN_LESS_THAN:
+      case TOKEN_GREATER_THAN:
+      case TOKEN_LESS_THAN_EQUAL:
+      case TOKEN_GREATER_THAN_EQUAL:
+      {
+      	
+      	while(stack_last >-1 && get_priority(token_train[i].token_type)<=get_priority(token_train[stack[stack_last]].token_type))
+      	{
+      		int k=pop(stack,&stack_last);
+      		if(k>=0)
+      		{
+      			if(push(postfix,&postfix_last,k,count))
+      			{
+      				destroy_expression(temp);
+							return NULL;
+      			}
+      		}
+      		else 
+      			break;
+      	}
+      	if(stack_last<=-1 ||  get_priority(token_train[i].token_type)>get_priority(token_train[stack[stack_last]].token_type))
+      	{
+      		if(push(stack,&stack_last,i,count))
+      		{
+      			destroy_expression(temp);
+						return NULL;
+      		}
+      		break;
+      	}
+      }
+     	case TOKEN_NEW_LINE:
+				continue;
+        
+                      
+	    default:
+	    {
+	 	 		printf("synatx error:line %d:may have occured from line %d:illegal token in expression",parser_pov_lc,init_line_no);
+	    	destroy_expression(temp);
 				return NULL;
-            }
-        }
-    }
+	    }
+  	}
+  }
     while(stack_last>=0)
     {
     	int k=pop(stack,&stack_last);

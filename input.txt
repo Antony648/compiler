@@ -1,15 +1,21 @@
-int main()
+int main(int a, int b)
 {
 	int a;
 	int b=10;
 	a=20;
 	a=a+b;
-	a=a*b/c*8;
-	for(int i=0;i<a;)
+	a=(a+b)/(c*8);
+	for(int i=0;i<a;i=i+1)
 	{
 		int c;
 		k=6*7/5;
 		i=i+1;
 	}
+	int z=1;
+	j(b,c);
 	return 0;
+}
+int jeseussaveus(int k)
+{
+	return k+1;
 }
