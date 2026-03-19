@@ -871,7 +871,7 @@ AST_FUNC_CALL* get_function_call()
 		move_next();
 		switch (token_train[token_train_offset].token_type) 
 		{
-			TOKEN_COMMA:
+			case TOKEN_COMMA:
 			{
 				if(token_train[seek_next()].token_type!=TOKEN_ID)
 				{
@@ -881,7 +881,7 @@ AST_FUNC_CALL* get_function_call()
 				move_next();
 				break;
 			}
-			TOKEN_RPAR:
+			case TOKEN_RPAR:
 			{
 				continue;
 			}
