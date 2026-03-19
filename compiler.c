@@ -1,5 +1,6 @@
 #include "lexer.h"
 #include "parser.h"
+#include "pretty_print.h"
 #include <fcntl.h>
 #include <stdio.h>
 
@@ -27,6 +28,7 @@ int main(int argc,char* argv[])
 		printf("failure in generation ast tree.\n");
 		goto error_end;
 	}
+	pretty_print(ast_tree);
 	destroy_code_block(ast_tree);
 error_end:
 	destroy_token_train();

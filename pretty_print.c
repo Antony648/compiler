@@ -1,6 +1,7 @@
 #include "pretty_print.h"
 #include "parser.h"
 
+
 void pretty_print(AST_CODE_BLOCK* param1)
 {
 	switch(param1->code_block_type)
@@ -24,8 +25,13 @@ void pretty_print(AST_CODE_BLOCK* param1)
         case AST_PROGRAM:
         	printf("start of program\n");
         	break;
+        case AST_FOR_IMPLICT:
+        	printf("for implict section\n");
+        	break;
+        case AST_FOR_INIT:
+        	printf("for init section\n");
           break;
-    }
+        }
     AST_STATEMENT* temp=param1->statement;
     while(temp)
     {
@@ -39,12 +45,12 @@ void print_decclare(AST_DEC* param1){
 	return;
 }
 void print_init(AST_INIT* param1){
-	printf("initialize:%s:\n",param1->identifier->iden);
+	printf("initialize:%s:",param1->identifier->iden);
 	print_expression(param1->expression);
 	return;
 }
 void print_assign(AST_ASSIGN* param1){
-	printf("assign:%s:\n",param1->identifier->iden);
+	printf("assign:%s:",param1->identifier->iden);
 	print_expression(param1->expresssion);
 	return;
 }
@@ -76,7 +82,7 @@ void print_for(AST_FOR_CASE* param1){
 }
 void print_fucntion_params(AST_FUNC_PARAMS* param1)
 {
-	while(param1)
+	while(param1 && param1->identifier)
 	{
           switch (param1->identifier->data_type) 
           {
@@ -99,9 +105,15 @@ void print_function(AST_FUNC* param1){
 	return;
 }
 void print_function_call(AST_FUNC_CALL* param1){
-	
+	printf("function call:%s\n",param1->identifier->iden);
+	print_fucntion_params(param1->paramters_list);
+	return;
 }
-void print_retrun(AST_RETURN* param1){}
+void print_retrun(AST_RETURN* param1){
+	printf("return ");
+	print_expression(param1->expression);
+	return;
+}
 
 void print_statement(AST_STATEMENT* param1)
 {
@@ -141,4 +153,67 @@ void print_statement(AST_STATEMENT* param1)
         
         }
 }
-void print_expression(AST_EXPR*);
+void print_expression(AST_EXPR* param1)
+{
+	printf("expression:");
+	switch(param1->ast_exp_type)
+	{
+
+        case AST_NULL_EXPR_T:
+        	printf("error null expression\n");
+        	break;
+        case AST_IDEN_T:
+        	printf("identifier:%s\n",param1->identifier->iden);
+        	break;
+        case AST_VAL_T:
+        	printf("value:%d\n",param1->value);
+        	break;
+        case AST_BIN_EXPR_T:
+        	printf("\n\t");
+        	printf("operation\n");
+        	//print operation first
+        	switch(param1->expression.bin_ops)
+        	{
+
+                case AST_NULL_BIN_OPS_T:
+                	printf("null case illegal\n");
+                	break;
+                case AST_ADD_T:
+                	printf("+\n");
+                	break;
+                case AST_SUB_T:
+                	printf("-\n");
+                	break;
+                case AST_MUL_T:
+                	printf("*\n");
+                	break;
+                case AST_DIV_T:
+                	printf("/\n");
+                	break;
+                case AST_EQ_T:
+                	printf("==\n");
+                	break;
+                case AST_NEQ_T:
+                	printf("!=\n");
+                	break;
+                case AST_LESS_T:
+                	printf("<\n");
+                	break;
+                case AST_GREAT_T:
+                	printf(">\n");
+                	break;
+                case AST_LEQ_T:
+                	printf("<=\n");
+                	break;
+                case AST_GEQ_T:
+                	printf(">=\n");
+                  break;
+                }
+					printf("left expression:");
+        	print_expression(param1->expression.expr_l);
+        	printf("\tright expression:");
+        	print_expression(param1->expression.expr_r);
+        	printf("\n");
+          break;
+        }
+}

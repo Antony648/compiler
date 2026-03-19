@@ -157,6 +157,8 @@ typedef enum
 	AST_WHILE_CODE_BLOCK,
 	AST_FUNC_CODE_BLOCK,
 	AST_PROGRAM,
+	AST_FOR_IMPLICT,
+	AST_FOR_INIT,
 }AST_CODE_BLOCK_T;
 
 struct ast_code_block

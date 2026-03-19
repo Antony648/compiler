@@ -586,6 +586,7 @@ AST_EXPR* get_expression(int mode)
     	temp2->expression.bin_ops=bin_ops;
     	if(push_postfix(expr_stack, &expr_stack_index, temp2,count))
     	{
+    		printf("internal error:failure in pushing\n");
     		goto error_end;
     	}
 	}
@@ -1284,6 +1285,7 @@ AST_CODE_BLOCK* get_for_implict()
 		return NULL;
 	}
 	memset(first,0,sizeof(AST_CODE_BLOCK));
+	first->code_block_type=AST_FOR_IMPLICT;
 	if(token_train[token_train_offset].token_type==TOKEN_RPAR)
 	{
 		token_train_offset-=1; //patch
@@ -1510,6 +1512,7 @@ AST_CODE_BLOCK* get_for_init()
 		return NULL;
 	}
 	memset(first,0,sizeof(AST_CODE_BLOCK));
+	first->code_block_type=AST_FOR_INIT;
 	//AST_CODE_BLOCK *temp=first;
 	if(token_train[token_train_offset].token_type==TOKEN_SEMICOLON)
 	{
