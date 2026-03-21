@@ -260,7 +260,7 @@ AST_EXPR* get_expression(int mode)
 		//end+=1;
 		if(token_train[token_train_offset].token_type==TOKEN_EOF)
 		{
-			printf("syntax error:line %d:expression not terminated reached end of file\n",parser_pov_lc);
+			printf("syntax error:line:expression not terminated reached end of file\n");
 			destroy_expression(temp);
 			return NULL;
 		}
@@ -619,7 +619,22 @@ error_end:
 	}
 	return NULL;
 } 
-
+void destroy_function_call_params(AST_FUNC_CALL_PARAMS* first,int count)
+{
+	if(!first)
+		return;
+	
+	while(first)
+	{
+		if( first->expr)
+			destroy_expression(first->expr);
+		AST_FUNC_CALL_PARAMS* temp=first;
+		temp=temp->next;
+		free(first);
+		first=temp;
+	}
+	return;
+}
 void destroy_parameters(AST_FUNC_PARAMS* first, int count)
 {
 	if(!first)
@@ -633,7 +648,7 @@ void destroy_parameters(AST_FUNC_PARAMS* first, int count)
 		temp=first->next;
 		free(first);
 		first=temp;
-		count--;
+		//count--;
 	}
 	return;
 }
@@ -806,8 +821,8 @@ void destroy_function_call(AST_FUNC_CALL * temp)
 		return;
 	if(temp->identifier)
 		destroy_identifier(temp->identifier);
-	if(temp->paramters_list)
-		destroy_parameters(temp->paramters_list,temp->parameter_count);
+	if(temp->parameters_list)
+		destroy_function_call_params(temp->parameters_list,temp->parameter_count);
 	free(temp);
 }
 AST_FUNC_CALL* get_function_call()
@@ -846,14 +861,14 @@ AST_FUNC_CALL* get_function_call()
 		printf("syntax error:line %d:function call with no paranthesis\n",parser_pov_lc);
 		goto error_end;
 	}
-	temp->paramters_list=malloc(sizeof(AST_FUNC_PARAMS));
-	if(!temp->paramters_list)
+	temp->parameters_list=malloc(sizeof(AST_FUNC_CALL_PARAMS));
+	if(!temp->parameters_list)
 	{
 		printf("malloc errro");
 		goto error_end;
 	}
-	memset(temp->paramters_list,0,sizeof(AST_FUNC_PARAMS));
-	AST_FUNC_PARAMS *temp2=temp->paramters_list;
+	memset(temp->parameters_list,0,sizeof(AST_FUNC_CALL_PARAMS));
+	AST_FUNC_CALL_PARAMS *temp2=temp->parameters_list;
 	temp->parameter_count = 0;
 	move_next();
 	while(token_train[token_train_offset].token_type!=TOKEN_RPAR)
@@ -863,29 +878,14 @@ AST_FUNC_CALL* get_function_call()
 			printf("syntax error:line %d:non identifier inside paranthesis",parser_pov_lc);
 			goto error_end;
 		}
-		temp2->identifier=malloc(sizeof(AST_IDEN));
-		if(!temp2->identifier)
-		{
-			printf("malloc failure");
-			goto error_end;
-		}
-		memset(temp2->identifier,0,sizeof(AST_IDEN));
-		len=strlen(token_train[token_train_offset].id_str);
-		temp2->identifier->iden=malloc(sizeof(len+1));
-		if(!temp2->identifier->iden)
-		{
-			printf("malloc failure");
-			goto error_end;
-		}
-		strncpy(temp2->identifier->iden,token_train[token_train_offset].id_str,len);
-		temp2->identifier->iden[len]='\0';
+		temp2->expr=get_expression(3);
 		temp->parameter_count=0;
 		move_next();
 		switch (token_train[token_train_offset].token_type) 
 		{
 			case TOKEN_COMMA:
 			{
-				if(token_train[seek_next()].token_type!=TOKEN_ID)
+				if(token_train[seek_next()].token_type!=TOKEN_ID && token_train[seek_next()].token_type!=TOKEN_INT_VAL)
 				{
 					printf("syntax errror:line %d:no identifier after comma",parser_pov_lc);
 					goto error_end;
@@ -903,13 +903,13 @@ AST_FUNC_CALL* get_function_call()
 				goto error_end;
 			}
 		}
-		temp2->next=malloc(sizeof(AST_FUNC_PARAMS));
+		temp2->next=malloc(sizeof(AST_FUNC_CALL_PARAMS));
 		if(!temp2->next)
 		{
 			printf("malloc failure");
 			goto error_end;
 		}
-		memset(temp2->next,0,sizeof(AST_FUNC_PARAMS));
+		memset(temp2->next,0,sizeof(AST_FUNC_CALL_PARAMS));
 		temp2=temp2->next;
 	}
 	move_next();
@@ -1108,10 +1108,12 @@ AST_IF_CASE* get_if(){
 		printf("malloc failure");
 		return NULL;
 	}
+	memset(temp,0,sizeof(AST_IF_CASE));
+	int temp_lc=parser_pov_lc;
 	temp->test_case_expression=get_expression(4);
 	if(!temp->test_case_expression)
 	{
-		printf("failure in getting expression\n");
+		printf("syntax error:%d:failure in getting expression from the line\n",temp_lc);
 		goto error_end;
 	}
 	move_next(); 	//expression
@@ -1791,6 +1793,7 @@ AST_DEC_T,
 	AST_FOR_T,
 	AST_FUNC_T,
 	AST_NEW_LINE_T,*/
+	int temp_lc=parser_pov_lc;
 	AST_STATEMENT* temp=malloc(sizeof(AST_STATEMENT));
 	if(!temp)
 	{
@@ -1917,7 +1920,7 @@ AST_DEC_T,
 	*statement=temp;
 	return 0;
 error_end:
-	printf("syntax error:line %d:unrecognized statement start\n",parser_pov_lc);
+	printf("syntax error:line %d:unrecognized statement start\n",temp_lc);
 	if(temp)
 		free(temp);
 	*statement=NULL;

@@ -21,7 +21,7 @@ int add_next_token(FILE *file_ptr)
 	if(token_count >=token_cur_max)
 	{
 		token_obj *temp; token_cur_max*=2;
-		temp=realloc(token_train,sizeof(token_obj)*token_count);
+		temp=realloc(token_train,sizeof(token_obj)*token_cur_max);
 		if(!temp)
 		{
 			printf("malloc failure\n");

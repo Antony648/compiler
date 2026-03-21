@@ -100,6 +100,17 @@ void print_fucntion_params(AST_FUNC_PARAMS* paramlist,int count)
 		count--;
 	}
 }
+void print_fucntion_call_params(AST_FUNC_CALL_PARAMS* parameterlist, int count)
+{
+	printf("function call paramters\n");
+	AST_FUNC_CALL_PARAMS* temp=parameterlist;
+	while( temp)
+	{
+		print_expression(temp->expr);
+		count--;
+		temp=temp->next;
+	}
+}
 void print_function(AST_FUNC* param1){
 	printf("function:%s\n",param1->identifier->iden);
 	print_fucntion_params(param1->paramters_list,param1->parameter_count);
@@ -108,7 +119,7 @@ void print_function(AST_FUNC* param1){
 }
 void print_function_call(AST_FUNC_CALL* param1){
 	printf("function call:%s\n",param1->identifier->iden);
-	print_fucntion_params(param1->paramters_list,param1->parameter_count);
+	print_fucntion_call_params(param1->parameters_list,param1->parameter_count);
 	return;
 }
 void print_retrun(AST_RETURN* param1){

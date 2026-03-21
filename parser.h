@@ -9,6 +9,8 @@ typedef struct ast_statement AST_STATEMENT;
 typedef struct ast_code_block AST_CODE_BLOCK;
 struct ast_func_params;
 typedef struct ast_func_params AST_FUNC_PARAMS;
+struct ast_func_call_params;
+typedef struct ast_func_call_params AST_FUNC_CALL_PARAMS;
 typedef enum 
 {
 	AST_NULL_BIN_OPS_T,
@@ -126,10 +128,16 @@ typedef struct
 	AST_IDEN* identifier;
 	AST_CODE_BLOCK *code_block;
 }AST_FUNC;
+struct ast_func_call_params
+{
+	AST_EXPR *expr;
+	AST_FUNC_CALL_PARAMS *next;
+};
 typedef  struct 
 {
 	AST_IDEN* identifier;
-	AST_FUNC_PARAMS *paramters_list;
+	//AST_FUNC_PARAMS *paramters_list;
+	AST_FUNC_CALL_PARAMS *parameters_list;
 	int parameter_count;
 }AST_FUNC_CALL ;
 struct ast_statement
