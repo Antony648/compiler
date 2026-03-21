@@ -35,6 +35,7 @@ typedef enum
 	AST_FUNC_T,
 	AST_FUNC_CALL_T,
 	AST_RETURN_T,
+	AST_CODE_BLOCK_TYPE,
 	
 }AST_T;
 
@@ -146,6 +147,7 @@ struct ast_statement
 		AST_INIT *init_statement;
 		AST_FUNC_CALL *func_call;
 		AST_RETURN *return_statement;
+		AST_CODE_BLOCK *code_block;
 	};
 	AST_STATEMENT* next;
 };

@@ -124,6 +124,9 @@ AST_DEC_T,
     case AST_NULL_T:
     	printf("internal error:illegal ast tree elem, or uninitailized element\n");
     	break;
+    case AST_CODE_BLOCK_TYPE:
+    	destroy_code_block(statement->code_block);
+    	break;
    }
    free(statement);
    statement=NULL;
@@ -1124,12 +1127,13 @@ AST_IF_CASE* get_if(){
 		goto error_end;
 	}
 	move_next();	//lbrace
-	temp->code_block=get_code_block(TOKEN_LPAR);
+	temp->code_block=get_code_block(TOKEN_RBRACE);
 	if(!temp->code_block)
 	{
 		printf("error in getting code block");
 		goto error_end;
 	}
+	/*
 	move_next();
 	if(token_train[token_train_offset].token_type!=TOKEN_RBRACE)
 	{
@@ -1137,6 +1141,7 @@ AST_IF_CASE* get_if(){
 		goto error_end;
 	}
 	move_next();	//rbrace
+	*/
 	return temp;
 error_end:
 	destroy_if(temp);
@@ -1874,6 +1879,14 @@ AST_DEC_T,
 			temp->statement_type=AST_WHILE_CASE_T;
 			temp->while_statement=get_while();
 			if(!temp->while_statement)
+				goto error_end;
+			break;
+		}
+		case TOKEN_LBRACE:
+		{
+			temp->statement_type=AST_CODE_BLOCK_TYPE;
+			temp->code_block=get_code_block(TOKEN_RBRACE);
+			if(!temp->code_block)
 				goto error_end;
 			break;
 		}
