@@ -16,6 +16,7 @@ void destroy_for(AST_FOR_CASE*);
 void destroy_return(AST_RETURN*);
 int token_train_offset=0;
 int parser_pov_lc=1;
+bool is_cur_function=false;
 int seek_next()
 {
 	int rtn_val=token_train_offset+1;
@@ -1828,8 +1829,15 @@ AST_DEC_T,
 				}
 				case TOKEN_LPAR:
 				{
+					if(is_cur_function)
+					{
+						printf("syntax error:fucntion decclaration inside function decclaration\n");
+						goto error_end;
+					}
+					is_cur_function=true;
 					temp->statement_type=AST_FUNC_T;
 					temp->func_statement=get_function();
+					is_cur_function=false;
 					if(!temp->func_statement)
 						goto error_end;
 					break;
@@ -1962,7 +1970,7 @@ AST_CODE_BLOCK* get_code_block(token_t end,AST_CODE_BLOCK_T type)
 
 	if(get_statement(&prgm->statement)<0)
 	{
-		printf("error:no content in input file\n");
+		printf("error:failed to get statement inital code block\n");
 		destroy_code_block(prgm);
 		exit(1);
 	}	
