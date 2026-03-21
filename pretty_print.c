@@ -172,6 +172,8 @@ void print_statement(AST_STATEMENT* param1)
 void print_expression(AST_EXPR* param1)
 {
 	printf("expression:");
+	if(!param1)
+		return ;
 	switch(param1->ast_exp_type)
 	{
 
