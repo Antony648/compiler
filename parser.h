@@ -1,6 +1,7 @@
 #ifndef PARSER_H
 #define PARSER_H
 #include "lexer.h"
+#include "symbol_table.h"
 #include <stdio.h>
 struct ast_expression;
 typedef struct ast_expression AST_EXPR;
@@ -53,6 +54,7 @@ typedef struct
 	AST_DATA_TYPES data_type;
 	char* iden;
 	//should add enty in ths symbol table
+	SYMBOL_TABLE_ELEM* pointer;
 }AST_IDEN;
 typedef enum 
 {
@@ -176,6 +178,7 @@ struct ast_code_block
 {
 	AST_CODE_BLOCK_T code_block_type;
 	AST_STATEMENT *statement;
+	SYMBOL_TABLE_ELEM* last;
 };
 AST_CODE_BLOCK* get_code_block(token_t,AST_CODE_BLOCK_T );
 void destroy_code_block(AST_CODE_BLOCK* code_block);
