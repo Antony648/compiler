@@ -152,6 +152,9 @@ void print_statement(AST_STATEMENT* param1)
         case AST_RETURN_T:
         	print_retrun(param1->return_statement);
         	break;
+        case AST_CODE_BLOCK_TYPE:
+        	pretty_print(param1->code_block);
+        	break;
         
         }
 }

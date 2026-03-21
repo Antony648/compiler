@@ -1885,6 +1885,7 @@ AST_DEC_T,
 		case TOKEN_LBRACE:
 		{
 			temp->statement_type=AST_CODE_BLOCK_TYPE;
+			move_next();
 			temp->code_block=get_code_block(TOKEN_RBRACE);
 			if(!temp->code_block)
 				goto error_end;
