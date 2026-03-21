@@ -20,7 +20,7 @@ void pretty_print(AST_CODE_BLOCK* param1)
         	printf("while code block\n");
         	break;
         case AST_FUNC_CODE_BLOCK:
-        	printf("function\n");
+        	printf("function code block\n");
         	break;	
         case AST_PROGRAM:
         	printf("start of program\n");
@@ -30,6 +30,9 @@ void pretty_print(AST_CODE_BLOCK* param1)
         	break;
         case AST_FOR_INIT:
         	printf("for init section\n");
+          break;
+        case AST_NORM_CODE_BLOCK:
+        	printf("normal code block\n");
           break;
         }
     AST_STATEMENT* temp=param1->statement;
@@ -57,14 +60,12 @@ void print_assign(AST_ASSIGN* param1){
 void print_if(AST_IF_CASE* param1){
 	printf("if test case:\n");
 	print_expression(param1->test_case_expression);
-	printf("if code block\n");
 	pretty_print(param1->code_block);
 	return;
 }
 void print_while(AST_WHILE_CASE* param1){
 	printf("while test case:\n");
 	print_expression(param1->test_case_expression);
-	printf("while code block\n");
 	pretty_print(param1->code_block);
 	return;
 }
@@ -102,7 +103,6 @@ void print_fucntion_params(AST_FUNC_PARAMS* paramlist,int count)
 void print_function(AST_FUNC* param1){
 	printf("function:%s\n",param1->identifier->iden);
 	print_fucntion_params(param1->paramters_list,param1->parameter_count);
-	printf("code block\n");
 	pretty_print(param1->code_block);
 	return;
 }

@@ -785,7 +785,7 @@ AST_FUNC* get_function()
 		goto error_end;
 	}
 	move_next();//start of block
-	temp->code_block=get_code_block(TOKEN_RBRACE);
+	temp->code_block=get_code_block(TOKEN_RBRACE,AST_FUNC_CODE_BLOCK);
 	/*
 	if(token_train[token_train_offset].token_type!=TOKEN_RBRACE)
 	{
@@ -1127,7 +1127,7 @@ AST_IF_CASE* get_if(){
 		goto error_end;
 	}
 	move_next();	//lbrace
-	temp->code_block=get_code_block(TOKEN_RBRACE);
+	temp->code_block=get_code_block(TOKEN_RBRACE,AST_IF_CODE_BLOCK);
 	if(!temp->code_block)
 	{
 		printf("error in getting code block");
@@ -1199,7 +1199,7 @@ AST_WHILE_CASE* get_while(){
 		goto error_end;
 	}
 	move_next();	//consume lbrace
-	temp->code_block=get_code_block(TOKEN_RBRACE);
+	temp->code_block=get_code_block(TOKEN_RBRACE,AST_WHILE_CODE_BLOCK);
 	move_next();	//consume block
 	if(token_train[token_train_offset].token_type!=TOKEN_RBRACE)
 	{
@@ -1644,7 +1644,7 @@ AST_FOR_CASE* get_for(){
 		goto error_end;
 	}
 	move_next(); //added this because we are expected to be inside code block
-	temp->code_block=get_code_block(TOKEN_RBRACE);
+	temp->code_block=get_code_block(TOKEN_RBRACE,AST_FOR_CODE_BLOCK);
 	if(!temp->code_block)
 	{
 		printf("failure in gettin code block");
@@ -1886,7 +1886,7 @@ AST_DEC_T,
 		{
 			temp->statement_type=AST_CODE_BLOCK_TYPE;
 			move_next();
-			temp->code_block=get_code_block(TOKEN_RBRACE);
+			temp->code_block=get_code_block(TOKEN_RBRACE,AST_NORM_CODE_BLOCK);
 			if(!temp->code_block)
 				goto error_end;
 			break;
@@ -1939,7 +1939,7 @@ void destroyed_code_block(AST_CODE_BLOCK* code_block)
 	free(code_block);
 	return ;
 }
-AST_CODE_BLOCK* get_code_block(token_t end)
+AST_CODE_BLOCK* get_code_block(token_t end,AST_CODE_BLOCK_T type)
 {
 	AST_CODE_BLOCK* prgm=malloc(sizeof(AST_CODE_BLOCK));
 	AST_STATEMENT* temp=NULL;
@@ -1950,7 +1950,7 @@ AST_CODE_BLOCK* get_code_block(token_t end)
 		exit(1);
 	}
 	memset(prgm,0,sizeof(AST_CODE_BLOCK));
-	prgm->code_block_type=AST_PROGRAM;
+	prgm->code_block_type=type;
 	if(token_train[token_train_offset].token_type==end || token_train[token_train_offset].token_type==TOKEN_EOF)
 	{
 		move_next();

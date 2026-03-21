@@ -22,7 +22,7 @@ int main(int argc,char* argv[])
 	}
 	init_token_train();
 	populate_token_train(file_ptr);
-	AST_CODE_BLOCK* ast_tree=get_code_block(TOKEN_EOF);
+	AST_CODE_BLOCK* ast_tree=get_code_block(TOKEN_EOF,AST_PROGRAM);
 	if(!ast_tree)
 	{
 		printf("failure in generation ast tree.\n");

@@ -154,6 +154,7 @@ struct ast_statement
 typedef enum 
 {
 	AST_CODE_BLOCK_NULL,
+	AST_NORM_CODE_BLOCK,
 	AST_IF_CODE_BLOCK,
 	AST_FOR_CODE_BLOCK,
 	AST_WHILE_CODE_BLOCK,
@@ -168,6 +169,6 @@ struct ast_code_block
 	AST_CODE_BLOCK_T code_block_type;
 	AST_STATEMENT *statement;
 };
-AST_CODE_BLOCK* get_code_block(token_t );
+AST_CODE_BLOCK* get_code_block(token_t,AST_CODE_BLOCK_T );
 void destroy_code_block(AST_CODE_BLOCK* code_block);
 #endif
