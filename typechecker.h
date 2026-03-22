@@ -3,5 +3,5 @@
 #include "parser.h"
 #include "symbol_table.h"
 SYMBOL_TABLE_ELEM* generate_symbol_table(AST_CODE_BLOCK*,SYMBOL_TABLE_ELEM* ,int,AST_STATEMENT*);
-
+void death_lever();
 #endif

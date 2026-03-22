@@ -23,6 +23,9 @@ typedef enum{
 	SYMB_TBL_IDEN,
 	SYMB_TBL_FUNC,
 }SYMBOL_TABLE_ELEM_T;
+
+
+
 struct symbol_table_elem
 {
 	SYMBOL_TABLE_ELEM_T elem_type;

@@ -58,7 +58,7 @@ void add_death_map(SYMBOL_TABLE_ELEM* elem)
 	DEATH_MAP_ELEM* temp=malloc(sizeof(DEATH_MAP_ELEM));
 	if(!temp)
 	{
-		printf("malloc failure\n");
+		printf("malloc failure death map elem add death map\n");
 		death_lever();
 	}
 	memset(temp,0,sizeof(DEATH_MAP_ELEM));
@@ -74,7 +74,7 @@ SYMBOL_TABLE_ELEM* find_sym_tbl_elem(SYMBOL_TABLE_ELEM* reverse_end,char* identi
 	int len=strlen(identifier)+1;
 	while(reverse_end)
 	{
-		if(reverse_end->elem_type==SYMB_TBL_START)
+		if(reverse_end->elem_type==SYMB_TBL_START || reverse_end->elem_type==SYMB_TBL_FUNC)
 			goto jump;
 		if(!strncmp(reverse_end->values.iden_values.identifier,identifier,len) && reverse_end->elem_type== type)
 			return reverse_end;
@@ -119,9 +119,9 @@ void find_expression_symbols(SYMBOL_TABLE_ELEM* reverse_end,AST_EXPR* expression
 SYMBOL_TABLE_ELEM* get_sym_tbl_malloc(char* identifier)
 {
 	SYMBOL_TABLE_ELEM* temp=malloc(sizeof(SYMBOL_TABLE_ELEM));
-	if(temp)
+	if(!temp)
 	{
-		printf("malloc failure\n");
+		printf("malloc failure symbtbl get symb tbl malloc\n");
 		death_lever();
 	}
 	memset(temp,0,sizeof(SYMBOL_TABLE_ELEM));
@@ -129,9 +129,9 @@ SYMBOL_TABLE_ELEM* get_sym_tbl_malloc(char* identifier)
 		return temp;
 	int len=strlen(identifier)+1;
 	temp->values.iden_values.identifier=malloc(len);
-	if(temp->values.iden_values.identifier)
+	if(!temp->values.iden_values.identifier)
 	{
-		printf("malloc failure\n");
+		printf(" malloc failure identifier  get_sym_tbl malloc\n");
 		death_lever();
 	}
 	strncpy(temp->values.iden_values.identifier,identifier,len);
@@ -155,7 +155,16 @@ void get_symb_tbl_assign(SYMBOL_TABLE_ELEM* rtn_val,AST_STATEMENT* temp)
 	find_expression_symbols(rtn_val,temp->assign_statement->expresssion,temp->line_number);
 	return;
 }
-
+bool is_present_in_same_scope(SYMBOL_TABLE_ELEM* end,char* identifier)
+{
+	while(end && end->elem_type!=SYMB_TBL_START)
+	{
+		if(!strncmp(end->values.iden_values.identifier,identifier,strlen(identifier)))
+			return true;
+		end=end->prev;
+	}
+	return false;
+}
 void get_symb_tbl_init(SYMBOL_TABLE_ELEM** rtn_val_addr,AST_INIT* init_stmt,int line_number)
 {
 		if(init_stmt->data_type!=get_expr_data_type(init_stmt->expression))
@@ -163,26 +172,33 @@ void get_symb_tbl_init(SYMBOL_TABLE_ELEM** rtn_val_addr,AST_INIT* init_stmt,int 
 			printf("semantic error:%d:mismatch in init\n",line_number);
 			death_lever();
 		}
-		SYMBOL_TABLE_ELEM* rtn_val=*rtn_val_addr;
+		if(is_present_in_same_scope(*rtn_val_addr, init_stmt->identifier->iden))
+		{
+			printf("semantic error:%d:decclared before in same scope\n",line_number);
+			if(!(*rtn_val_addr)->references)
+				destroy_symbol_tbl_elem(*rtn_val_addr);
+			death_lever();
+		}
+		
 		SYMBOL_TABLE_ELEM* init_temp=get_sym_tbl_malloc(init_stmt->identifier->iden);
-  	init_temp->prev=rtn_val;
+  	init_temp->prev=*rtn_val_addr;
   	init_temp->values.iden_values.data_type=init_stmt->data_type;
   	init_temp->elem_type=SYMB_TBL_IDEN;
-  	rtn_val->references++;
-  	rtn_val=init_temp;
+  	(*rtn_val_addr)->references++;
+  	*rtn_val_addr=init_temp;
   	init_stmt->identifier->pointer=init_temp;
 }
 
 void get_symb_tbl_dec(SYMBOL_TABLE_ELEM** rtn_val_addr,AST_IDEN* identifier,AST_DATA_TYPES data_t)
 {
-		SYMBOL_TABLE_ELEM* rtn_val=*rtn_val_addr;
+		
 		SYMBOL_TABLE_ELEM* dec_temp=get_sym_tbl_malloc(identifier->iden);
-  	dec_temp->prev=rtn_val;
+  	dec_temp->prev=*rtn_val_addr;
   	dec_temp->values.iden_values.data_type=data_t;
   	dec_temp->elem_type=SYMB_TBL_IDEN;
-  	rtn_val->references++;
+  	(*rtn_val_addr)->references++;
   	identifier->pointer=dec_temp;
-  	rtn_val=dec_temp;
+  	*rtn_val_addr=dec_temp;
   	return;
 }
 
@@ -192,6 +208,8 @@ void get_symb_tbl_func_call(SYMBOL_TABLE_ELEM* rtn_val,AST_FUNC_CALL* func_call,
 	if(!fucn_call_temp)
 	{
 		printf("semantic error:%d:calling undecclared function '%s'\n",line_number,func_call->identifier->iden);
+		if(!rtn_val->references)
+			destroy_symbol_tbl_elem(rtn_val);
 		death_lever();		
 	}
 	AST_FUNC_CALL_PARAMS* i=func_call->parameters_list;
@@ -283,7 +301,8 @@ SYMBOL_TABLE_ELEM* generate_symbol_table(AST_CODE_BLOCK* ast_tree,SYMBOL_TABLE_E
 main_code_start:
 	while(temp)
 	{
-          switch (temp->statement_type) {
+      switch (temp->statement_type) 
+      {
           case AST_NULL_T:
           {
           	printf("null type statement\n");
@@ -343,8 +362,11 @@ main_code_start:
           	break;
           }
           case AST_CODE_BLOCK_TYPE:
+          {
+          	generate_symbol_table(temp->code_block, rtn_val, 0, NULL);
             break;
           }
+       }
                 temp=temp->next;
 	}
 
