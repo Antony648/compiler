@@ -10,6 +10,8 @@ typedef struct ast_statement AST_STATEMENT;
 typedef struct ast_code_block AST_CODE_BLOCK;
 struct ast_func_params;
 typedef struct ast_func_params AST_FUNC_PARAMS;
+struct ast_func_call;
+typedef  struct ast_func_call AST_FUNC_CALL ;
 struct ast_func_call_params;
 typedef struct ast_func_call_params AST_FUNC_CALL_PARAMS;
 typedef enum 
@@ -59,6 +61,7 @@ typedef struct
 typedef enum 
 {
 	AST_NULL_EXPR_T,
+	AST_FUNC_CALL_TYPE,
 	AST_IDEN_T,
 	AST_VAL_T,
 	AST_BIN_EXPR_T,
@@ -72,6 +75,7 @@ struct ast_expression
 	{
 		AST_IDEN *identifier;
 		int value;
+		AST_FUNC_CALL* func_call;
 		struct
 		{
 			binary_ops bin_ops;
@@ -135,13 +139,13 @@ struct ast_func_call_params
 	AST_EXPR *expr;
 	AST_FUNC_CALL_PARAMS *next;
 };
-typedef  struct 
+ struct ast_func_call
 {
 	AST_IDEN* identifier;
 	//AST_FUNC_PARAMS *paramters_list;
 	AST_FUNC_CALL_PARAMS *parameters_list;
 	int parameter_count;
-}AST_FUNC_CALL ;
+} ;
 struct ast_statement
 {
 	AST_T statement_type;
