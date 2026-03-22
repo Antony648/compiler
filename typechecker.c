@@ -7,6 +7,12 @@ SYMBOL_TABLE_ELEM* last=NULL;
 DEATH_MAP_ELEM* end=NULL;
 int leading_scope=0;
 void get_symb_tbl_func_call(SYMBOL_TABLE_ELEM*,AST_FUNC_CALL*,int);
+AST_DATA_TYPES get_expr_data_type(AST_EXPR* expression)
+{
+	//for now we can assume all expression 
+	//return int as datatype
+	return AST_INT_T;
+}
 void destroy_symbol_tbl_elem(SYMBOL_TABLE_ELEM* elem)
 {
 	if(!elem)
@@ -81,32 +87,33 @@ void find_expression_symbols(SYMBOL_TABLE_ELEM* reverse_end,AST_EXPR* expression
 {
   	switch (expression->ast_exp_type)
   	{
-	  case AST_NULL_EXPR_T:
-	  	return;
-	  case AST_IDEN_T:
-	  {
-	  	SYMBOL_TABLE_ELEM*temp=find_sym_tbl_elem(reverse_end, expression->identifier->iden,SYMB_TBL_IDEN);
-	  	if(!temp)
-	  	{
-	  		printf("sematic error:%d:usage without decclaration variable '%s'\n",line_number,expression->identifier->iden);
-	        death_lever();
-	  	}
-	  	expression->identifier->pointer=temp;
-	  	return;
-	  }
-	  case AST_VAL_T:
-	  	return ;
-	  case AST_BIN_EXPR_T:
-	  	{
-	  		find_expression_symbols(reverse_end, expression->expression.expr_l, line_number);
-	  		find_expression_symbols(reverse_end, expression->expression.expr_r, line_number);
-	  		return;
-	  	}
+		  case AST_NULL_EXPR_T:
+		  	return;
+		  case AST_IDEN_T:
+		  {
+		  	SYMBOL_TABLE_ELEM*temp=find_sym_tbl_elem(reverse_end, expression->identifier->iden,SYMB_TBL_IDEN);
+		  	if(!temp)
+		  	{
+		  		printf("sematic error:%d:usage without decclaration variable '%s'\n",line_number,expression->identifier->iden);
+		        death_lever();
+		  	}
+		  	expression->identifier->pointer=temp;
+		  	return;
+		  }
+		  case AST_VAL_T:
+		  	return ;
+		  case AST_BIN_EXPR_T:
+		  	{
+		  		find_expression_symbols(reverse_end, expression->expression.expr_l, line_number);
+		  		find_expression_symbols(reverse_end, expression->expression.expr_r, line_number);
+		  		return;
+		  	}
 
-    case AST_FUNC_CALL_TYPE:
-      {
-      	get_symb_tbl_func_call(reverse_end,expression->func_call,line_number);
-      }
+	    case AST_FUNC_CALL_TYPE:
+	      {
+	      	get_symb_tbl_func_call(reverse_end,expression->func_call,line_number);
+	      	return;
+	      }
   }
 }
 SYMBOL_TABLE_ELEM* get_sym_tbl_malloc(char* identifier)
@@ -130,39 +137,55 @@ SYMBOL_TABLE_ELEM* get_sym_tbl_malloc(char* identifier)
 	strncpy(temp->values.iden_values.identifier,identifier,len);
 	return temp;
 }
+
 void get_symb_tbl_assign(SYMBOL_TABLE_ELEM* rtn_val,AST_STATEMENT* temp)
 {
 	SYMBOL_TABLE_ELEM* assign_temp=find_sym_tbl_elem(rtn_val, temp->assign_statement->identifier->iden,SYMB_TBL_IDEN);
-  	if(!assign_temp)
-  	{
-  		printf("sematic error:%d:usage without decclaration variable '%s'\n",temp->line_number,temp->assign_statement->identifier->iden);
-  		death_lever();
-  	}
-  	temp->assign_statement->identifier->pointer=assign_temp;
-  	find_expression_symbols(rtn_val,temp->assign_statement->expresssion,temp->line_number);
-  	return;
+	if(!assign_temp)
+	{
+		printf("sematic error:%d:usage without decclaration variable '%s'\n",temp->line_number,temp->assign_statement->identifier->iden);
+		death_lever();
+	}
+	if(assign_temp->values.iden_values.data_type!=get_expr_data_type(temp->assign_statement->expresssion))
+	{
+		printf("semantic error:%d:assignment of wrong datatype ",temp->line_number);
+		death_lever();
+	}
+	temp->assign_statement->identifier->pointer=assign_temp;
+	find_expression_symbols(rtn_val,temp->assign_statement->expresssion,temp->line_number);
+	return;
 }
-void get_symb_tbl_init(SYMBOL_TABLE_ELEM** rtn_val_addr,AST_IDEN* identifier)
+
+void get_symb_tbl_init(SYMBOL_TABLE_ELEM** rtn_val_addr,AST_INIT* init_stmt,int line_number)
 {
+		if(init_stmt->data_type!=get_expr_data_type(init_stmt->expression))
+		{
+			printf("semantic error:%d:mismatch in init\n",line_number);
+			death_lever();
+		}
 		SYMBOL_TABLE_ELEM* rtn_val=*rtn_val_addr;
-		SYMBOL_TABLE_ELEM* init_temp=get_sym_tbl_malloc(identifier->iden);
+		SYMBOL_TABLE_ELEM* init_temp=get_sym_tbl_malloc(init_stmt->identifier->iden);
   	init_temp->prev=rtn_val;
+  	init_temp->values.iden_values.data_type=init_stmt->data_type;
   	init_temp->elem_type=SYMB_TBL_IDEN;
   	rtn_val->references++;
   	rtn_val=init_temp;
-  	identifier->pointer=init_temp;
+  	init_stmt->identifier->pointer=init_temp;
 }
-void get_symb_tbl_dec(SYMBOL_TABLE_ELEM** rtn_val_addr,AST_IDEN* identifier)
+
+void get_symb_tbl_dec(SYMBOL_TABLE_ELEM** rtn_val_addr,AST_IDEN* identifier,AST_DATA_TYPES data_t)
 {
 		SYMBOL_TABLE_ELEM* rtn_val=*rtn_val_addr;
 		SYMBOL_TABLE_ELEM* dec_temp=get_sym_tbl_malloc(identifier->iden);
   	dec_temp->prev=rtn_val;
+  	dec_temp->values.iden_values.data_type=data_t;
   	dec_temp->elem_type=SYMB_TBL_IDEN;
   	rtn_val->references++;
   	identifier->pointer=dec_temp;
   	rtn_val=dec_temp;
   	return;
 }
+
 void get_symb_tbl_func_call(SYMBOL_TABLE_ELEM* rtn_val,AST_FUNC_CALL* func_call,int line_number)
 {
 	SYMBOL_TABLE_ELEM* fucn_call_temp=find_sym_tbl_elem(rtn_val,func_call->identifier->iden,SYMB_TBL_FUNC);
@@ -178,6 +201,7 @@ void get_symb_tbl_func_call(SYMBOL_TABLE_ELEM* rtn_val,AST_FUNC_CALL* func_call,
 		i=i->next;
 	}
 }
+
 SYMBOL_TABLE_ELEM* generate_symbol_table(AST_CODE_BLOCK* ast_tree,SYMBOL_TABLE_ELEM* prev,int mode,AST_STATEMENT* passed)
 {
 	//mode
@@ -192,6 +216,11 @@ SYMBOL_TABLE_ELEM* generate_symbol_table(AST_CODE_BLOCK* ast_tree,SYMBOL_TABLE_E
 	AST_STATEMENT* temp=ast_tree->statement;
 	if(mode==1)
 	{
+		if(!passed)
+		{
+			printf("internal error:calling mode without passing statment\n");
+			death_lever();
+		}
 		if(passed->statement_type!=AST_FUNC_T)
 		{
 			printf("illegal call\n");
@@ -202,7 +231,7 @@ SYMBOL_TABLE_ELEM* generate_symbol_table(AST_CODE_BLOCK* ast_tree,SYMBOL_TABLE_E
 		{
 			if(func_type->identifier)
 			{
-				get_symb_tbl_dec(&rtn_val, func_type->identifier);
+				get_symb_tbl_dec(&rtn_val, func_type->identifier,func_type->data_type);
 			}
 			func_type=func_type->next;
 		}
@@ -210,6 +239,11 @@ SYMBOL_TABLE_ELEM* generate_symbol_table(AST_CODE_BLOCK* ast_tree,SYMBOL_TABLE_E
 	}
 	else if(mode ==2)
 	{
+		if(!passed)
+		{
+			printf("internal error:calling mode without passing statment\n");
+			death_lever();
+		}
 		if(passed->statement_type!=AST_FOR_T)
 		{
 			printf("illegal case\n");
@@ -224,12 +258,12 @@ SYMBOL_TABLE_ELEM* generate_symbol_table(AST_CODE_BLOCK* ast_tree,SYMBOL_TABLE_E
 			{
 				case AST_DEC_T:
           {
-          	get_symb_tbl_dec(&rtn_val,for_temp_init->dec_statement->identifier);
+          	get_symb_tbl_dec(&rtn_val,for_temp_init->dec_statement->identifier,for_temp_init->dec_statement->data_type);
           	break;
           }
         case AST_INIT_T:
           {
-          	get_symb_tbl_init(&rtn_val,for_temp_init->init_statement->identifier);
+          	get_symb_tbl_init(&rtn_val,for_temp_init->init_statement,for_temp_init->line_number);
           	break;
           }
         case AST_ASSIGN_T:
@@ -257,12 +291,12 @@ main_code_start:
           }
           case AST_DEC_T:
           {
-          	get_symb_tbl_dec(&rtn_val,temp->dec_statement->identifier);
+          	get_symb_tbl_dec(&rtn_val,temp->dec_statement->identifier,temp->dec_statement->data_type);
           	break;
           }
           case AST_INIT_T:
           {
-          	get_symb_tbl_init(&rtn_val,temp->init_statement->identifier);
+          	get_symb_tbl_init(&rtn_val,temp->init_statement,temp->line_number);
           	break;
           }
           case AST_ASSIGN_T:
@@ -339,6 +373,8 @@ main_code_start:
 	}
 end:
 	ast_tree->last=rtn_val;
+	if(!rtn_val->references)
+		add_death_map(rtn_val);
 	//add to death map
 	return rtn_val;
 

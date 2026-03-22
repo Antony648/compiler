@@ -86,7 +86,7 @@ void print_fucntion_params(AST_FUNC_PARAMS* paramlist,int count)
 	printf("function params:\n");
 	while(  paramlist && paramlist->identifier)
 	{
-          switch (paramlist->identifier->data_type) 
+          switch (paramlist->data_type) 
           {
 	          case AST_DATA_TYPES_NULL:
 	          	printf("illegal data type null");
@@ -185,6 +185,9 @@ void print_expression(AST_EXPR* param1)
         	break;
         case AST_VAL_T:
         	printf("value:%d\n",param1->value);
+        	break;
+        case AST_FUNC_CALL_TYPE:
+        	printf("function call:%s",param1->func_call->identifier->iden);
         	break;
         case AST_BIN_EXPR_T:
         	printf("\n\t");

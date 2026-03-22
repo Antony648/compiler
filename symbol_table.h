@@ -10,6 +10,12 @@ struct death_map_elem
 	SYMBOL_TABLE_ELEM* pointer;
 	DEATH_MAP_ELEM* prev;
 };
+typedef enum 
+{
+	AST_DATA_TYPES_NULL,
+	AST_INT_T,
+	//can add other data types here
+}AST_DATA_TYPES;
 
 typedef enum{
 	SYMB_TBL_NULL,
@@ -24,7 +30,7 @@ struct symbol_table_elem
 		struct s1
 		{
 			void *address;
-			//AST_DATA_TYPES data_type;
+			AST_DATA_TYPES data_type;
 			char* identifier;
 		}iden_values;
 		struct s2
