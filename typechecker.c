@@ -26,19 +26,21 @@ void destroy_symbol_tbl_elem(SYMBOL_TABLE_ELEM* elem)
 	free(elem);
 	return;
 }
-void death_start(DEATH_MAP_ELEM* elem)
+void death_start(SYMBOL_TABLE_ELEM* elem)
 {
 
 	while(elem)
 	{
-		if(elem->pointer->references)
+		if(elem->references)
 			return;
-		elem->pointer->prev->references--;
+		if(elem->prev)
+			elem->prev->references--;
 
-		destroy_symbol_tbl_elem(elem->pointer);
-		DEATH_MAP_ELEM* temp=elem;
-		elem=elem->prev;
-		free(temp);
+		
+		SYMBOL_TABLE_ELEM* temp=elem->prev;
+		destroy_symbol_tbl_elem(elem);
+		elem=temp;
+		
 	}
 }
 void death_lever()
@@ -49,7 +51,8 @@ void death_lever()
 	{
 		DEATH_MAP_ELEM* temp=end;
 		end=end->prev;
-		death_start(temp);
+		death_start(temp->pointer);
+		free(temp);
 	}
 	exit(1);
 }
@@ -144,11 +147,15 @@ void get_symb_tbl_assign(SYMBOL_TABLE_ELEM* rtn_val,AST_STATEMENT* temp)
 	if(!assign_temp)
 	{
 		printf("sematic error:%d:usage without decclaration variable '%s'\n",temp->line_number,temp->assign_statement->identifier->iden);
+		if(!rtn_val->references)
+			death_start(rtn_val);
 		death_lever();
 	}
 	if(assign_temp->values.iden_values.data_type!=get_expr_data_type(temp->assign_statement->expresssion))
 	{
 		printf("semantic error:%d:assignment of wrong datatype ",temp->line_number);
+		if(!rtn_val->references)
+			death_start(rtn_val);
 		death_lever();
 	}
 	temp->assign_statement->identifier->pointer=assign_temp;
@@ -170,13 +177,15 @@ void get_symb_tbl_init(SYMBOL_TABLE_ELEM** rtn_val_addr,AST_INIT* init_stmt,int 
 		if(init_stmt->data_type!=get_expr_data_type(init_stmt->expression))
 		{
 			printf("semantic error:%d:mismatch in init\n",line_number);
+			if(!(*rtn_val_addr)->references)
+				death_start(*rtn_val_addr);
 			death_lever();
 		}
 		if(is_present_in_same_scope(*rtn_val_addr, init_stmt->identifier->iden))
 		{
 			printf("semantic error:%d:decclared before in same scope\n",line_number);
 			if(!(*rtn_val_addr)->references)
-				destroy_symbol_tbl_elem(*rtn_val_addr);
+				death_start(*rtn_val_addr);
 			death_lever();
 		}
 		
@@ -209,7 +218,7 @@ void get_symb_tbl_func_call(SYMBOL_TABLE_ELEM* rtn_val,AST_FUNC_CALL* func_call,
 	{
 		printf("semantic error:%d:calling undecclared function '%s'\n",line_number,func_call->identifier->iden);
 		if(!rtn_val->references)
-			destroy_symbol_tbl_elem(rtn_val);
+			death_start(rtn_val);
 		death_lever();		
 	}
 	AST_FUNC_CALL_PARAMS* i=func_call->parameters_list;
@@ -237,11 +246,15 @@ SYMBOL_TABLE_ELEM* generate_symbol_table(AST_CODE_BLOCK* ast_tree,SYMBOL_TABLE_E
 		if(!passed)
 		{
 			printf("internal error:calling mode without passing statment\n");
+			if(!rtn_val->references)
+				death_start(rtn_val);
 			death_lever();
 		}
 		if(passed->statement_type!=AST_FUNC_T)
 		{
 			printf("illegal call\n");
+			if(!rtn_val->references)
+				death_start(rtn_val);
 			death_lever();
 		}
 		AST_FUNC_PARAMS* func_type=passed->func_statement->paramters_list;
@@ -260,11 +273,15 @@ SYMBOL_TABLE_ELEM* generate_symbol_table(AST_CODE_BLOCK* ast_tree,SYMBOL_TABLE_E
 		if(!passed)
 		{
 			printf("internal error:calling mode without passing statment\n");
+			if(!rtn_val->references)
+				death_start(rtn_val);
 			death_lever();
 		}
 		if(passed->statement_type!=AST_FOR_T)
 		{
 			printf("illegal case\n");
+			if(!rtn_val->references)
+				death_start(rtn_val);
 			death_lever();
 		}
 		if(!passed->for_statement->init_expressions)
@@ -373,7 +390,11 @@ main_code_start:
 	if(mode==2)
 	{
 		if(passed->statement_type!=AST_FOR_T)
+		{
+			if(!rtn_val->references)
+				death_start(rtn_val);
 			death_lever();
+		}
 		if(!passed->for_statement->implict_expressions)
 			goto end;
 		AST_STATEMENT *for_temp_implict=passed->for_statement->implict_expressions->statement;
