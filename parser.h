@@ -44,16 +44,11 @@ typedef enum
 	
 }AST_T;
 
-typedef enum 
-{
-	AST_DATA_TYPES_NULL,
-	AST_INT_T,
-	//can add other data types here
-}AST_DATA_TYPES;
+
 
 typedef struct 
 {
-	AST_DATA_TYPES data_type;
+	//AST_DATA_TYPES data_type;
 	char* iden;
 	//should add enty in ths symbol table
 	SYMBOL_TABLE_ELEM* pointer;
@@ -89,11 +84,13 @@ typedef struct
 {
 	AST_IDEN *identifier;
 	AST_EXPR *expression;
+	AST_DATA_TYPES data_type;
 }AST_INIT;
 
 typedef struct 
 {
 	AST_IDEN *identifier;
+	AST_DATA_TYPES data_type;
 }AST_DEC;
 typedef struct 
 {
@@ -120,6 +117,7 @@ typedef struct
 struct ast_func_params
 {
 	AST_IDEN *identifier;
+	AST_DATA_TYPES data_type;
 	AST_FUNC_PARAMS* next;
 };
 typedef struct ast_return

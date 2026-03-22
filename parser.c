@@ -754,7 +754,7 @@ AST_FUNC* get_function()
 			goto error_end;
 		}
 		memset(temp2->identifier,0,sizeof(AST_IDEN));
-		temp2->identifier->data_type=datatype;
+		temp2->data_type=datatype;
 		len=strlen(token_train[token_train_offset].id_str);
 		temp2->identifier->iden=malloc(len+1);
 		if(!temp2->identifier->iden)
@@ -984,7 +984,8 @@ AST_INIT* get_init()
 	strncpy(buffer,token_train[token_train_offset].id_str,len);
 	buffer[len]='\0';
 	temp->identifier->iden=buffer;
-	temp->identifier->data_type=temp_dt;
+	//temp->identifier->data_type=temp_dt;
+	temp->data_type=temp_dt;
 	move_next();//identifer consume
 	if(token_train[token_train_offset].token_type!=TOKEN_ASSIGN)
 	{
@@ -1356,7 +1357,7 @@ AST_DEC* get_for_init_dec(token_t tok_t)
 	switch(tok_t)
 	{
 		case TOKEN_INT:
-			temp->identifier->data_type=AST_INT_T;
+			temp->data_type=AST_INT_T;
 			break;
 		//add your data types
 		default:
@@ -1420,7 +1421,7 @@ AST_INIT* get_for_init_init(token_t tok_t)
 	switch(tok_t)
 	{
 		case TOKEN_INT:
-				temp->identifier->data_type=AST_INT_T;
+				temp->data_type=AST_INT_T;
 				break;
 		//add other data types
 		default:
@@ -1701,7 +1702,7 @@ AST_DEC* get_decclaration()
 	{
 		case TOKEN_INT:
 		{
-			temp->identifier->data_type=AST_INT_T;
+			temp->data_type=AST_INT_T;
 			move_next();
 			if(token_train[token_train_offset].token_type!=TOKEN_ID)
 			{

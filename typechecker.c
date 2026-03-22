@@ -7,14 +7,44 @@ SYMBOL_TABLE_ELEM* last=NULL;
 DEATH_MAP_ELEM* end=NULL;
 int leading_scope=0;
 void get_symb_tbl_func_call(SYMBOL_TABLE_ELEM*,AST_FUNC_CALL*,int);
+void destroy_symbol_tbl_elem(SYMBOL_TABLE_ELEM* elem)
+{
+	if(!elem)
+		return;
+	if(elem->elem_type==SYMB_TBL_IDEN)
+	{
+		 if(elem->values.iden_values.identifier)
+		 	free(elem->values.iden_values.identifier);
+
+	}
+	free(elem);
+	return;
+}
 void death_start(DEATH_MAP_ELEM* elem)
 {
 
+	while(elem)
+	{
+		if(elem->pointer->references)
+			return;
+		elem->pointer->prev->references--;
+
+		destroy_symbol_tbl_elem(elem->pointer);
+		DEATH_MAP_ELEM* temp=elem;
+		elem=elem->prev;
+		free(temp);
+	}
 }
 void death_lever()
 {
 	//most dangerous function implementation ever
 	//highly prone to mem leakage
+	while(end)
+	{
+		DEATH_MAP_ELEM* temp=end;
+		end=end->prev;
+		death_start(temp);
+	}
 	exit(1);
 }
 void add_death_map(SYMBOL_TABLE_ELEM* elem)
