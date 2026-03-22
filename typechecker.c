@@ -7,6 +7,10 @@ SYMBOL_TABLE_ELEM* last=NULL;
 DEATH_MAP_ELEM* end=NULL;
 int leading_scope=0;
 void get_symb_tbl_func_call(SYMBOL_TABLE_ELEM*,AST_FUNC_CALL*,int);
+void death_start(DEATH_MAP_ELEM* elem)
+{
+
+}
 void death_lever()
 {
 	//most dangerous function implementation ever
@@ -114,7 +118,7 @@ void get_symb_tbl_init(SYMBOL_TABLE_ELEM** rtn_val_addr,AST_IDEN* identifier)
 		SYMBOL_TABLE_ELEM* init_temp=get_sym_tbl_malloc(identifier->iden);
   	init_temp->prev=rtn_val;
   	init_temp->elem_type=SYMB_TBL_IDEN;
-  	//rtn_val->values.references++;
+  	rtn_val->references++;
   	rtn_val=init_temp;
   	identifier->pointer=init_temp;
 }
@@ -124,7 +128,7 @@ void get_symb_tbl_dec(SYMBOL_TABLE_ELEM** rtn_val_addr,AST_IDEN* identifier)
 		SYMBOL_TABLE_ELEM* dec_temp=get_sym_tbl_malloc(identifier->iden);
   	dec_temp->prev=rtn_val;
   	dec_temp->elem_type=SYMB_TBL_IDEN;
-  	//rtn_val->values.references++;
+  	rtn_val->references++;
   	identifier->pointer=dec_temp;
   	rtn_val=dec_temp;
   	return;
