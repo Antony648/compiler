@@ -11,6 +11,8 @@ AST_DATA_TYPES get_expr_data_type(AST_EXPR* expression)
 {
 	//for now we can assume all expression 
 	//return int as datatype
+	if(!expression)
+		return AST_DATA_TYPES_NULL;
 	return AST_INT_T;
 }
 void destroy_symbol_tbl_elem(SYMBOL_TABLE_ELEM* elem)
@@ -75,9 +77,9 @@ int min(int a,int b)
 {
 	return a<b?a:b;
 }
-SYMBOL_TABLE_ELEM* find_sym_tbl_elem(SYMBOL_TABLE_ELEM* reverse_end,char* identifier,SYMBOL_TABLE_ELEM_T type)
+SYMBOL_TABLE_ELEM* find_sym_tbl_elem(SYMBOL_TABLE_ELEM* reverse_end,SYMBOL_TABLE_ELEM_T type,AST_IDEN * iden,AST_FUNC_CALL* func_ptr)
 {
-	int len=strlen(identifier)+1;
+	
 	while(reverse_end)
 	{
 		if(reverse_end->elem_type==SYMB_TBL_START || reverse_end->elem_type!=type)
@@ -92,6 +94,8 @@ SYMBOL_TABLE_ELEM* find_sym_tbl_elem(SYMBOL_TABLE_ELEM* reverse_end,char* identi
 	    	break;
 	    case SYMB_TBL_IDEN:
     	{
+    		char* identifier=iden->iden;
+    		int len=strlen(identifier)+1;
     		int len2=strlen(reverse_end->values.iden_values.identifier)+1;
     		if(!strncmp(reverse_end->values.iden_values.identifier,identifier,min(len,len2)))
 					return reverse_end;
@@ -99,9 +103,27 @@ SYMBOL_TABLE_ELEM* find_sym_tbl_elem(SYMBOL_TABLE_ELEM* reverse_end,char* identi
     	}
 	    case SYMB_TBL_FUNC:
 	    {
-	    	int len2=strlen(((AST_FUNC*)reverse_end->values.func_values.function)->identifier->iden);
-	    	if(!strncmp(((AST_FUNC*)reverse_end->values.func_values.function)->identifier->iden, identifier, min(len,len2)))
+	    	char* identifier=func_ptr->identifier->iden;
+	    	int len=strlen(identifier)+1;
+	    	AST_FUNC* func_temp=(AST_FUNC*)reverse_end->values.func_values.function;
+	    	int len2=strlen(func_temp->identifier->iden);
+
+	    	if(!strncmp(func_temp->identifier->iden, identifier, min(len,len2)))
 	    	{
+	    		//compare param count and param types
+
+	    		AST_FUNC_CALL_PARAMS* func_call_params=func_ptr->parameters_list;
+	    		AST_FUNC_PARAMS* func_params=func_temp->paramters_list;
+
+	    		while(func_params)	   
+	    		{
+	    			if(!func_call_params)
+	    				return NULL;
+	    			if(func_params->data_type!=AST_DATA_TYPES_NULL &&get_expr_data_type(func_call_params->expr)!=func_params->data_type)
+	    				return NULL;
+	    			func_call_params=func_call_params->next;
+	    			func_params=func_params->next;
+	    		}
 	    		return  reverse_end;
 	    	}
 	      break;
@@ -122,7 +144,7 @@ void find_expression_symbols(SYMBOL_TABLE_ELEM* reverse_end,AST_EXPR* expression
 		  	return;
 		  case AST_IDEN_T:
 		  {
-		  	SYMBOL_TABLE_ELEM*temp=find_sym_tbl_elem(reverse_end, expression->identifier->iden,SYMB_TBL_IDEN);
+		  	SYMBOL_TABLE_ELEM*temp=find_sym_tbl_elem(reverse_end, SYMB_TBL_IDEN,expression->identifier,NULL);
 		  	if(!temp)
 		  	{
 		  		printf("sematic error:%d:usage without decclaration variable '%s'\n",line_number,expression->identifier->iden);
@@ -171,7 +193,7 @@ SYMBOL_TABLE_ELEM* get_sym_tbl_malloc(char* identifier)
 
 void get_symb_tbl_assign(SYMBOL_TABLE_ELEM* rtn_val,AST_STATEMENT* temp)
 {
-	SYMBOL_TABLE_ELEM* assign_temp=find_sym_tbl_elem(rtn_val, temp->assign_statement->identifier->iden,SYMB_TBL_IDEN);
+	SYMBOL_TABLE_ELEM* assign_temp=find_sym_tbl_elem(rtn_val,SYMB_TBL_IDEN,temp->assign_statement->identifier,NULL);
 	if(!assign_temp)
 	{
 		printf("sematic error:%d:usage without decclaration variable '%s'\n",temp->line_number,temp->assign_statement->identifier->iden);
@@ -241,7 +263,7 @@ void get_symb_tbl_dec(SYMBOL_TABLE_ELEM** rtn_val_addr,AST_IDEN* identifier,AST_
 
 void get_symb_tbl_func_call(SYMBOL_TABLE_ELEM* rtn_val,AST_FUNC_CALL* func_call,int line_number)
 {
-	SYMBOL_TABLE_ELEM* fucn_call_temp=find_sym_tbl_elem(rtn_val,func_call->identifier->iden,SYMB_TBL_FUNC);
+	SYMBOL_TABLE_ELEM* fucn_call_temp=find_sym_tbl_elem(rtn_val,SYMB_TBL_FUNC,NULL,func_call);
 	if(!fucn_call_temp)
 	{
 		printf("semantic error:%d:calling undecclared function '%s'\n",line_number,func_call->identifier->iden);
