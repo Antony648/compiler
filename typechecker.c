@@ -238,7 +238,7 @@ void get_symb_tbl_init(SYMBOL_TABLE_ELEM** rtn_val_addr,AST_INIT* init_stmt,int 
 				death_start(*rtn_val_addr);
 			death_lever();
 		}
-		
+		find_expression_symbols(*rtn_val_addr, init_stmt->expression, line_number);
 		SYMBOL_TABLE_ELEM* init_temp=get_sym_tbl_malloc(init_stmt->identifier->iden);
   	init_temp->prev=*rtn_val_addr;
   	init_temp->values.iden_values.data_type=init_stmt->data_type;
@@ -246,6 +246,8 @@ void get_symb_tbl_init(SYMBOL_TABLE_ELEM** rtn_val_addr,AST_INIT* init_stmt,int 
   	(*rtn_val_addr)->references++;
   	*rtn_val_addr=init_temp;
   	init_stmt->identifier->pointer=init_temp;
+  	
+  	return;
 }
 
 void get_symb_tbl_dec(SYMBOL_TABLE_ELEM** rtn_val_addr,AST_IDEN* identifier,AST_DATA_TYPES data_t)
