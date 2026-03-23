@@ -71,16 +71,42 @@ void add_death_map(SYMBOL_TABLE_ELEM* elem)
 	end=temp;
 	return;
 }
-
+int min(int a,int b)
+{
+	return a<b?a:b;
+}
 SYMBOL_TABLE_ELEM* find_sym_tbl_elem(SYMBOL_TABLE_ELEM* reverse_end,char* identifier,SYMBOL_TABLE_ELEM_T type)
 {
 	int len=strlen(identifier)+1;
 	while(reverse_end)
 	{
-		if(reverse_end->elem_type==SYMB_TBL_START || reverse_end->elem_type==SYMB_TBL_FUNC)
+		if(reverse_end->elem_type==SYMB_TBL_START || reverse_end->elem_type!=type)
 			goto jump;
-		if(!strncmp(reverse_end->values.iden_values.identifier,identifier,len) && reverse_end->elem_type== type)
-			return reverse_end;
+    switch (type) 
+    {
+	    case SYMB_TBL_NULL:
+	    	printf("null symbol :find_sym_tbl_elem\n");
+	    	break;
+	    case SYMB_TBL_START:
+	    	printf("start symbol:find_sym_tbl_elem\n");
+	    	break;
+	    case SYMB_TBL_IDEN:
+    	{
+    		int len2=strlen(reverse_end->values.iden_values.identifier)+1;
+    		if(!strncmp(reverse_end->values.iden_values.identifier,identifier,min(len,len2)))
+					return reverse_end;
+				break;
+    	}
+	    case SYMB_TBL_FUNC:
+	    {
+	    	int len2=strlen(((AST_FUNC*)reverse_end->values.func_values.function)->identifier->iden);
+	    	if(!strncmp(((AST_FUNC*)reverse_end->values.func_values.function)->identifier->iden, identifier, min(len,len2)))
+	    	{
+	    		return  reverse_end;
+	    	}
+	      break;
+	    }
+    }
 jump:
 		reverse_end=reverse_end->prev;
 	}
@@ -88,6 +114,8 @@ jump:
 }
 void find_expression_symbols(SYMBOL_TABLE_ELEM* reverse_end,AST_EXPR* expression,int line_number)
 {
+		if(!expression)
+				return;
   	switch (expression->ast_exp_type)
   	{
 		  case AST_NULL_EXPR_T:
@@ -363,7 +391,7 @@ main_code_start:
           	func_temp->prev=rtn_val;
           	func_temp->elem_type=SYMB_TBL_FUNC;
           	rtn_val->references++;
-          	func_temp->values.func_values.function=(void*)temp;
+          	func_temp->values.func_values.function=(void*)temp->func_call;
           	rtn_val=func_temp;
           	generate_symbol_table(temp->func_statement->code_block, rtn_val, 1,temp);
           	break;
