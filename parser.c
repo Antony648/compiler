@@ -875,11 +875,11 @@ AST_FUNC_CALL* get_function_call()
 	move_next();
 	while(token_train[token_train_offset].token_type!=TOKEN_RPAR)
 	{
-		if(token_train[token_train_offset].token_type!=TOKEN_ID)
+		/*if(token_train[token_train_offset].token_type!=TOKEN_ID)
 		{
 			printf("syntax error:line %d:non identifier inside paranthesis",parser_pov_lc);
 			goto error_end;
-		}
+		}*/
 		temp2->expr=get_expression(3);
 		temp->parameter_count=0;
 		move_next();
