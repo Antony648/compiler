@@ -254,6 +254,7 @@ AST_EXPR* get_expression(int mode)
 		printf("malloc failure");
 		return NULL;
 	}
+	memset(temp,0,sizeof(AST_EXPR));
 	int start=token_train_offset, end,count=0;int init_line_no=parser_pov_lc;
 	int paranthesis_count=0;
 	while(1)
@@ -1009,6 +1010,7 @@ AST_INIT* get_init()
 	return temp;
 error_end:
 	destroy_init(temp);
+	temp=NULL;
 	return temp;
 }
 
@@ -1953,7 +1955,7 @@ void destroyed_code_block(AST_CODE_BLOCK* code_block)
 }
 AST_CODE_BLOCK* get_code_block(token_t end,AST_CODE_BLOCK_T type)
 {
-	
+
 	while(token_train[token_train_offset].token_type==TOKEN_NEW_LINE)
 		token_train_offset++;
 
