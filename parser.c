@@ -1206,13 +1206,13 @@ AST_WHILE_CASE* get_while(){
 	}
 	move_next();	//consume lbrace
 	temp->code_block=get_code_block(TOKEN_RBRACE,AST_WHILE_CODE_BLOCK);
-	move_next();	//consume block
+	/*move_next();	//consume block
 	if(token_train[token_train_offset].token_type!=TOKEN_RBRACE)
 	{
 		printf("syntax error:line %d:no rbrace after while body",parser_pov_lc);
 		goto error_end;
 	}
-	move_next();	//consume rbace
+	move_next();	//consume rbace*/
 	return temp;
 error_end:
 	destroy_while(temp);
@@ -1953,7 +1953,7 @@ void destroyed_code_block(AST_CODE_BLOCK* code_block)
 	free(code_block);
 	return ;
 }
-AST_CODE_BLOCK* get_code_block(token_t end,AST_CODE_BLOCK_T type)
+AST_CODE_BLOCK*get_code_block(token_t end,AST_CODE_BLOCK_T type)
 {
 
 	while(token_train[token_train_offset].token_type==TOKEN_NEW_LINE)
