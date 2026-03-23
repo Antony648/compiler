@@ -336,6 +336,7 @@ SYMBOL_TABLE_ELEM* generate_symbol_table(AST_CODE_BLOCK* ast_tree,SYMBOL_TABLE_E
 				death_start(rtn_val);
 			death_lever();
 		}
+		
 		if(!passed->for_statement->init_expressions)
 			goto main_code_start;
 		AST_STATEMENT *for_temp_init=passed->for_statement->init_expressions->statement;
@@ -463,6 +464,7 @@ main_code_start:
 					printf("sematic error:unexpected statement in for implict\n");
 					break;
 			}
+			for_temp_implict=for_temp_implict->next;
 		}
 
 	}
