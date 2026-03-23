@@ -1953,6 +1953,10 @@ void destroyed_code_block(AST_CODE_BLOCK* code_block)
 }
 AST_CODE_BLOCK* get_code_block(token_t end,AST_CODE_BLOCK_T type)
 {
+	
+	while(token_train[token_train_offset].token_type==TOKEN_NEW_LINE)
+		token_train_offset++;
+
 	AST_CODE_BLOCK* prgm=malloc(sizeof(AST_CODE_BLOCK));
 	AST_STATEMENT* temp=NULL;
 	if(!prgm)
