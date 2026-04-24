@@ -131,6 +131,7 @@ typedef struct
 	int parameter_count;
 	AST_IDEN* identifier;
 	AST_CODE_BLOCK *code_block;
+	int variable_size_total;
 }AST_FUNC;
 struct ast_func_call_params
 {
