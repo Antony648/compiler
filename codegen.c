@@ -1,5 +1,6 @@
 #include "codegen.h"
 #include "parser.h"
+#include "symbol_table.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -10,17 +11,42 @@ int if_count=0;
 int normal_count=0;
 int function_count=0;
 //
-void generate_code_statements(AST_STATEMENT* stmt)
+int get_size_bytes(AST_DATA_TYPES type)
 {
-
+    switch(type)
+    {
+            
+    }
 }
-void generate_code_codeblock(AST_CODE_BLOCK* code_block,int fd,int add_val)
+void generate_code_statements(AST_STATEMENT* stmt,int* function_context)
+{
+    switch(stmt->statement_type)
+    {
+        case AST_NULL_T:
+            printf("ir_codgen error:got null type statement\n");
+            break;
+        case AST_DEC_T:
+
+            break;
+        case AST_INIT_T:
+        case AST_ASSIGN_T:
+        case AST_IF_CASE_T:
+        case AST_WHILE_CASE_T:
+        case AST_FOR_T:
+        case AST_FUNC_T:
+        case AST_FUNC_CALL_T:
+        case AST_RETURN_T:
+        case AST_CODE_BLOCK_TYPE:
+    }
+}
+void generate_code_codeblock(AST_CODE_BLOCK* code_block,int fd,int add_val,int* function_context)
 {
 	char end[33]={0};
 	char start[35]={0};
 	char* start_ptr=NULL;
 	char* end_ptr=NULL;
 	int value_at_hand=0;
+
 	switch(code_block->code_block_type)
 	{
 
@@ -77,7 +103,7 @@ void generate_code_codeblock(AST_CODE_BLOCK* code_block,int fd,int add_val)
     AST_STATEMENT* stmt=code_block->statement;
     while(stmt)
     {
-    	generate_code_statements(stmt);
+    	generate_code_statements(stmt,function_context);
     	stmt=stmt->next;
     }
     write(fd,end,strlen(end));
