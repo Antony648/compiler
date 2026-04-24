@@ -15,31 +15,106 @@ int get_size_bytes(AST_DATA_TYPES type)
 {
     switch(type)
     {
-            
+
+    case AST_DATA_TYPES_NULL:
+        printf("ir_codgen_error:unexpected datatype\n");
+        exit(0);
+    case AST_INT_T:
+        return 4;
     }
 }
-void generate_code_statements(AST_STATEMENT* stmt,int* function_context)
+void generate_code_expression(AST_EXPR* expr)
 {
+    //write code to generate x86 intel nasm for evalutation 
+    //and output to eax
+}
+void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,int *var_size)
+{
+    char temp[66]={0};
+    int stmt_function_context=0;
+    int stmt_var_size=0;
     switch(stmt->statement_type)
     {
         case AST_NULL_T:
             printf("ir_codgen error:got null type statement\n");
             break;
         case AST_DEC_T:
-
+            *function_context+=1;   //creates new variable inside function context
+            *var_size+=get_size_bytes(stmt->dec_statement->data_type);  //addes size for later
+            stmt->dec_statement->identifier->pointer->values.iden_values.temp_val=*var_size;
+            //setting the ebp-<value> ast temp_val in symbol table
+            sprintf(temp,";create variable varno:%d",*function_context);
+            write(fd,temp,strlen(temp)+1);
+            memset(temp,0,strlen(temp));
+            sprintf(temp, "\tsub esp,%d\n",get_size_bytes(stmt->dec_statement->data_type));
+            write(fd,temp,strlen(temp)+1);
             break;
         case AST_INIT_T:
+            *function_context+=1;
+            *var_size+=get_size_bytes(stmt->init_statement->data_type);
+            stmt->init_statement->identifier->pointer->values.iden_values.temp_val=*var_size;
+            sprintf(temp,";create and init variable varno:%d\n",*function_context);
+            write(fd,temp,strlen(temp)+1);
+
+            memset(temp,0,strlen(temp));
+            sprintf(temp, "\tsub esp,%d\n",get_size_bytes(stmt->dec_statement->data_type));
+            write(fd,temp,strlen(temp)+1);
+
+            generate_code_expression(stmt->init_statement->expression);
+            memset(temp,0,strlen(temp));
+            sprintf(temp,"\tmov dword[ebp-%d],eax\n",stmt->init_statement->identifier->pointer->values.iden_values.temp_val);
+            write(fd,temp,strlen(temp)+1);
+            break;
         case AST_ASSIGN_T:
+            generate_code_expression(stmt->assign_statement->expresssion);
+            sprintf(temp, "\tmov dword[ebp-%d],eax\n",stmt->assign_statement->identifier->pointer->values.iden_values.temp_val);
+            write(fd,temp,strlen(temp)+1);
+            break;
         case AST_IF_CASE_T:
+            sprintf(temp,"if_start_%d:\n",if_count);
+            write(fd,temp,strlen(temp)+1);
+            memset(temp,0,strlen(temp));
+
+            generate_code_expression(stmt->if_statement->test_case_expression);
+            sprintf(temp,"\tcmp eax,0\n\t je if_b_start%d\n\tjmp if_b_end%d",if_count,if_count);
+
+            write(fd,temp,strlen(temp)+1);
+            memset(temp,0,strlen(temp));
+            if_count+=1;
+            break;
         case AST_WHILE_CASE_T:
+            sprintf(temp, "while_start_%d:\n",while_count);
+            write(fd,temp,strlen(temp)+1);
+            memset(temp,0,strlen(temp));
+
+            generate_code_expression(stmt->while_statement->test_case_expression);
+            sprintf(temp,"\tcmp eax,0\n\t je while_b_start%d\n\tjmp while_b_end%d",while_count,while_count);
+
+            write(fd,temp,strlen(temp)+1);
+            memset(temp,0,strlen(temp));
+            while_count+=1;
+            break;
         case AST_FOR_T:
+            sprintf(temp, "for_start_%d:\n",for_count);
+            write(fd,temp,strlen(temp)+1);
+            memset(temp,0,strlen(temp));
+
+            generate_code_expression(stmt->for_statement->test_case_expression);
+            sprintf(temp,"\tcmp eax,0\n\t je for_b_start%d\n\tjmp for_b_end%d",for_count,for_count);
+
+            write(fd,temp,strlen(temp)+1);
+            memset(temp,0,strlen(temp));
+            for_count+=1;
+            break;
         case AST_FUNC_T:
+            
         case AST_FUNC_CALL_T:
         case AST_RETURN_T:
         case AST_CODE_BLOCK_TYPE:
+            break;
     }
 }
-void generate_code_codeblock(AST_CODE_BLOCK* code_block,int fd,int add_val,int* function_context)
+void generate_code_codeblock(AST_CODE_BLOCK* code_block,int fd,int add_val,int* function_context,int* var_size)
 {
 	char end[33]={0};
 	char start[35]={0};
@@ -54,29 +129,29 @@ void generate_code_codeblock(AST_CODE_BLOCK* code_block,int fd,int add_val,int* 
         	printf("ir_codgen error:unrecognized code block\n");
         	break;
         case AST_NORM_CODE_BLOCK:
-        	start_ptr="normal_start%d:\n";
-        	end_ptr="normal_end%d:\n";
+        	start_ptr="normal_b_start%d:\n";
+        	end_ptr="normal_b_end%d:\n";
         	value_at_hand=normal_count;
         	normal_count++;
         	break;
         case AST_IF_CODE_BLOCK:
-        	start_ptr="if_start%d:\n";
-        	end_ptr="if_end%d:\n";
+        	start_ptr="if_b_start%d:\n";
+        	end_ptr="if_b_end%d:\n";
         	value_at_hand=add_val;
         	break;
         case AST_FOR_CODE_BLOCK:
-        	start_ptr="for_start%d:\n";
-        	end_ptr="for_end%d:\n";
+        	start_ptr="for_b_start%d:\n";
+        	end_ptr="for_b_end%d:\n";
         	value_at_hand=add_val;
         	break;
         case AST_WHILE_CODE_BLOCK:
-        	start_ptr="while_start%d:\n";
-        	end_ptr="while_end%d:\n";
+        	start_ptr="while_b_start%d:\n";
+        	end_ptr="while_b_end%d:\n";
         	value_at_hand=add_val;
         	break;
         case AST_FUNC_CODE_BLOCK:
-        	start_ptr="function_start%d:\n";
-        	end_ptr="function_end%d:\n";
+        	start_ptr="function_b_start%d:\n";
+        	end_ptr="function_b_end%d:\n";
         	value_at_hand=add_val;
         	break;
         case AST_PROGRAM:
@@ -103,8 +178,23 @@ void generate_code_codeblock(AST_CODE_BLOCK* code_block,int fd,int add_val,int* 
     AST_STATEMENT* stmt=code_block->statement;
     while(stmt)
     {
-    	generate_code_statements(stmt,function_context);
+    	generate_code_statements(fd,stmt,function_context,var_size);
     	stmt=stmt->next;
+    }
+    switch(code_block->code_block_type)
+    {
+        case AST_WHILE_CODE_BLOCK:
+            memset(start,0,strlen(start));
+            sprintf(start,"\tjmp while_start_%d\n",value_at_hand);
+            write(fd,start,strlen(start)+1);
+            break;
+        case AST_FOR_CODE_BLOCK:
+            memset(start,0,strlen(start));
+            sprintf(start,"\tjmp for_start_%d\n",value_at_hand);
+            write(fd,start,strlen(start)+1);
+            break;
+        default:
+            break;
     }
     write(fd,end,strlen(end));
     return;
