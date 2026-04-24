@@ -32,6 +32,7 @@ struct symbol_table_elem
 			void *address;
 			AST_DATA_TYPES data_type;
 			char* identifier;
+			int temp_val;
 		}iden_values;
 		struct s2
 		{
