@@ -2,6 +2,7 @@
 #include "parser.h"
 #include "symbol_table.h"
 #include <stdio.h>
+#include <time.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
@@ -31,8 +32,7 @@ void generate_code_expression(AST_EXPR* expr)
 void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,int *var_size)
 {
     char temp[66]={0};
-    int stmt_function_context=0;
-    int stmt_var_size=0;
+
     switch(stmt->statement_type)
     {
         case AST_NULL_T:
@@ -76,10 +76,11 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
             memset(temp,0,strlen(temp));
 
             generate_code_expression(stmt->if_statement->test_case_expression);
-            sprintf(temp,"\tcmp eax,0\n\t je if_b_start%d\n\tjmp if_b_end%d",if_count,if_count);
+            sprintf(temp,"\tcmp eax,0\n\t je if_b_start%d\n\tjmp if_b_end%d\n",if_count,if_count);
 
             write(fd,temp,strlen(temp)+1);
             memset(temp,0,strlen(temp));
+            generate_code_codeblock(stmt->code_block, fd, if_count, function_context, var_size);
             if_count+=1;
             break;
         case AST_WHILE_CASE_T:
@@ -92,6 +93,7 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
 
             write(fd,temp,strlen(temp)+1);
             memset(temp,0,strlen(temp));
+            generate_code_codeblock(stmt->code_block, fd, while_count, function_context, var_size);
             while_count+=1;
             break;
         case AST_FOR_T:
@@ -104,14 +106,44 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
 
             write(fd,temp,strlen(temp)+1);
             memset(temp,0,strlen(temp));
+            generate_code_codeblock(stmt->code_block, fd, for_count,function_context, var_size);
             for_count+=1;
             break;
         case AST_FUNC_T:
             
+            break;
         case AST_FUNC_CALL_T:
+
+            break;
         case AST_RETURN_T:
+            write(fd,"\tret\n",6);
+            break;
         case AST_CODE_BLOCK_TYPE:
             break;
+    }
+    if(stmt->statement_type==AST_FUNC_T)
+    {
+        int stmt_function_context=0;
+        int stmt_var_size=0;
+        int param_offset=-8;
+        AST_FUNC_PARAMS *param_temp=NULL;
+        sprintf(temp,"function_%d:",function_count);
+        write(fd,temp,strlen(temp)+1);
+        memset(temp,0,strlen(temp));
+
+        //set paramters
+        param_temp=stmt->func_statement->paramters_list;
+        while(param_temp)
+        {
+            if(param_temp->identifier)
+            {
+                param_temp->identifier->pointer->values.iden_values.temp_val=param_offset;
+                param_offset-=get_size_bytes(param_temp->identifier->pointer->values.iden_values.data_type);
+            }
+            param_temp=param_temp->next;
+        }
+        generate_code_codeblock(stmt->code_block,fd,0,&stmt_function_context,&stmt_var_size);
+        function_count+=1;
     }
 }
 void generate_code_codeblock(AST_CODE_BLOCK* code_block,int fd,int add_val,int* function_context,int* var_size)
