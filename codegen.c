@@ -110,7 +110,6 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
             for_count+=1;
             break;
         case AST_FUNC_T:
-            
             break;
         case AST_FUNC_CALL_T:
 
@@ -207,6 +206,12 @@ void generate_code_codeblock(AST_CODE_BLOCK* code_block,int fd,int add_val,int* 
     sprintf(start,start_ptr,value_at_hand);
     sprintf(end,end_ptr,value_at_hand);
     write(fd,start,strlen(start));
+    if(code_block->code_block_type==AST_FUNC_CODE_BLOCK)
+    {
+
+        write(fd,"\tpush ebp\n\tmov ebp,esp\n",25);
+
+    }
     AST_STATEMENT* stmt=code_block->statement;
     while(stmt)
     {
@@ -225,6 +230,9 @@ void generate_code_codeblock(AST_CODE_BLOCK* code_block,int fd,int add_val,int* 
             sprintf(start,"\tjmp for_start_%d\n",value_at_hand);
             write(fd,start,strlen(start)+1);
             break;
+        /*case AST_FUNC_CODE_BLOCK:
+            write(fd,"\tret\n",6);
+            break;*/
         default:
             break;
     }
