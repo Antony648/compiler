@@ -24,10 +24,65 @@ int get_size_bytes(AST_DATA_TYPES type)
         return 4;
     }
 }
-void generate_code_expression(AST_EXPR* expr)
+void generate_code_bin_exp(int fd,AST_EXPR* expr,int line_no)
+{
+    switch(expr->expression.bin_ops)
+    {
+
+    case AST_NULL_BIN_OPS_T:
+        printf("ir_codgen_warning:line %d:unexpected binary expression",line_no);
+        break;
+    case AST_ADD_T:
+        
+    case AST_SUB_T:
+    case AST_MUL_T:
+    case AST_DIV_T:
+    case AST_EQ_T:
+    case AST_NEQ_T:
+    case AST_LESS_T:
+    case AST_GREAT_T:
+    case AST_LEQ_T:
+    case AST_GEQ_T:
+      break;
+    }
+}
+void generate_code_expression(int fd,AST_EXPR* expr,int line_no)
 {
     //write code to generate x86 intel nasm for evalutation 
     //and output to eax
+    if(expr->ast_exp_type==AST_BIN_EXPR_T)
+    {
+        generate_code_bin_exp(fd, expr, line_no);
+        return;
+    }
+
+    char temp[66]={0};
+    int temp_val=0;
+    switch(expr->ast_exp_type)
+    {
+
+    case AST_NULL_EXPR_T:
+        printf("ir_codgen_warning:line %d:null epxression\n",line_no);
+        break;
+    case AST_FUNC_CALL_TYPE:
+        break;
+    case AST_IDEN_T:
+        temp_val=expr->identifier->pointer->values.iden_values.temp_val;
+        if(temp_val<0)
+            sprintf(temp, "\tmov eax,dword[ebp%d]\n",temp_val);
+        else
+            sprintf(temp,"\tmov eax,dword[ebp+%d]\n",temp_val);
+        write(fd,temp,strlen(temp)+1);
+
+        break;
+    case AST_VAL_T:
+        sprintf(temp,"\tmov eax,%d",expr->value);
+        write(fd,temp,strlen(temp)+1);
+        break;
+    default:
+        printf("ir_codgen_warning:line %d:default expression\n",line_no);
+      break;
+    }
 }
 void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,int *var_size)
 {
@@ -60,13 +115,13 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
             sprintf(temp, "\tsub esp,%d\n",get_size_bytes(stmt->dec_statement->data_type));
             write(fd,temp,strlen(temp)+1);
 
-            generate_code_expression(stmt->init_statement->expression);
+            generate_code_expression(fd,stmt->init_statement->expression,stmt->line_number);
             memset(temp,0,strlen(temp));
             sprintf(temp,"\tmov dword[ebp-%d],eax\n",stmt->init_statement->identifier->pointer->values.iden_values.temp_val);
             write(fd,temp,strlen(temp)+1);
             break;
         case AST_ASSIGN_T:
-            generate_code_expression(stmt->assign_statement->expresssion);
+            generate_code_expression(fd,stmt->assign_statement->expresssion,stmt->line_number);
             sprintf(temp, "\tmov dword[ebp-%d],eax\n",stmt->assign_statement->identifier->pointer->values.iden_values.temp_val);
             write(fd,temp,strlen(temp)+1);
             break;
@@ -75,7 +130,7 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
             write(fd,temp,strlen(temp)+1);
             memset(temp,0,strlen(temp));
 
-            generate_code_expression(stmt->if_statement->test_case_expression);
+            generate_code_expression(fd,stmt->if_statement->test_case_expression,stmt->line_number);
             sprintf(temp,"\tcmp eax,0\n\t je if_b_start%d\n\tjmp if_b_end%d\n",if_count,if_count);
 
             write(fd,temp,strlen(temp)+1);
@@ -88,7 +143,7 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
             write(fd,temp,strlen(temp)+1);
             memset(temp,0,strlen(temp));
 
-            generate_code_expression(stmt->while_statement->test_case_expression);
+            generate_code_expression(fd,stmt->while_statement->test_case_expression,stmt->line_number);
             sprintf(temp,"\tcmp eax,0\n\t je while_b_start%d\n\tjmp while_b_end%d",while_count,while_count);
 
             write(fd,temp,strlen(temp)+1);
@@ -101,7 +156,7 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
             write(fd,temp,strlen(temp)+1);
             memset(temp,0,strlen(temp));
 
-            generate_code_expression(stmt->for_statement->test_case_expression);
+            generate_code_expression(fd,stmt->for_statement->test_case_expression,stmt->line_number);
             sprintf(temp,"\tcmp eax,0\n\t je for_b_start%d\n\tjmp for_b_end%d",for_count,for_count);
 
             write(fd,temp,strlen(temp)+1);
@@ -156,7 +211,7 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
         }
         while(params_array_count>-1)
         {
-            generate_code_expression(params_array[params_array_count]->expr);
+            generate_code_expression(fd,params_array[params_array_count]->expr,stmt->line_number);
             write(fd,"\tpush eax\n",11);
             params_array_count-=1;   
         }
