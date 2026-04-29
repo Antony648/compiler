@@ -881,7 +881,7 @@ AST_FUNC_CALL* get_function_call()
 			goto error_end;
 		}*/
 		temp2->expr=get_expression(3);
-		temp->parameter_count=0;
+		temp->parameter_count+=1;
 		move_next();
 		switch (token_train[token_train_offset].token_type) 
 		{
