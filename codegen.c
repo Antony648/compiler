@@ -112,7 +112,6 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
         case AST_FUNC_T:
             break;
         case AST_FUNC_CALL_T:
-
             break;
         case AST_RETURN_T:
             write(fd,"\tret\n",6);
@@ -126,7 +125,7 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
         int stmt_var_size=0;
         int param_offset=-8;
         AST_FUNC_PARAMS *param_temp=NULL;
-        sprintf(temp,"function_%d:",function_count);
+        sprintf(temp,"function_%s:",stmt->func_statement->identifier->iden);
         write(fd,temp,strlen(temp)+1);
         memset(temp,0,strlen(temp));
 
@@ -143,6 +142,27 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
         }
         generate_code_codeblock(stmt->code_block,fd,0,&stmt_function_context,&stmt_var_size);
         function_count+=1;
+    }
+    if(stmt->statement_type==AST_FUNC_CALL_T)
+    {
+        AST_FUNC_CALL_PARAMS* params_array[stmt->func_call->parameter_count];
+        int params_array_count=-1;
+        AST_FUNC_CALL_PARAMS* temp_params=stmt->func_call->parameters_list;
+        while(temp_params)
+        {
+            params_array_count+=1;
+            params_array[params_array_count]=temp_params;
+            temp_params=temp_params->next;
+        }
+        while(params_array_count>-1)
+        {
+            generate_code_expression(params_array[params_array_count]->expr);
+            write(fd,"\tpush eax\n",11);
+            params_array_count-=1;   
+        }
+        sprintf(temp, "\tcall function_%s\n",stmt->func_call->identifier->iden);
+        write(fd,temp,strlen(temp)+1);
+        memset(temp,0,strlen(temp));
     }
 }
 void generate_code_codeblock(AST_CODE_BLOCK* code_block,int fd,int add_val,int* function_context,int* var_size)
