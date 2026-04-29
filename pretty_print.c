@@ -103,6 +103,7 @@ void print_fucntion_params(AST_FUNC_PARAMS* paramlist,int count)
 void print_fucntion_call_params(AST_FUNC_CALL_PARAMS* parameterlist, int count)
 {
 	printf("function call paramters\n");
+	printf("function call parameter count %d\n",count);
 	AST_FUNC_CALL_PARAMS* temp=parameterlist;
 	while( temp)
 	{
