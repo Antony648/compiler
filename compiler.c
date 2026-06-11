@@ -1,6 +1,6 @@
 #include "lexer.h"
 #include "parser.h"
-//#include "pretty_print.h"
+#include "pretty_print.h"
 #include "typechecker.h"
 #include <fcntl.h>
 #include <stdio.h>
@@ -29,7 +29,7 @@ int main(int argc,char* argv[])
 		printf("failure in generation ast tree.\n");
 		goto error_end;
 	}
-	//pretty_print(ast_tree);
+	pretty_print(ast_tree);
 	generate_symbol_table(ast_tree, NULL, 0, NULL);
 	death_lever();
 	destroy_code_block(ast_tree);
