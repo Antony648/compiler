@@ -417,7 +417,7 @@ bool generate_code(const char* file_name,SYMBOL_TABLE_ELEM* sym_tbl,AST_CODE_BLO
 		printf("codegen:failure in creation of output file\n");
 		return false;
 	}
-
-	
+    generate_code_codeblock(parse_tree,file_ptr, 0, &function_count, 0);
+	close(file_ptr);
 	return true;
 }
