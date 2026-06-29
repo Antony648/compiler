@@ -422,7 +422,7 @@ main_code_start:
           	func_temp->prev=rtn_val;
           	func_temp->elem_type=SYMB_TBL_FUNC;
           	rtn_val->references++;
-          	func_temp->values.func_values.function=(void*)temp->func_call;
+          	func_temp->values.func_values.function=(void*)temp->func_statement;
           	rtn_val=func_temp;
           	generate_symbol_table(temp->func_statement->code_block, rtn_val, 1,temp);
           	break;
