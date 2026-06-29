@@ -102,6 +102,30 @@ void generate_code_expression(int fd,AST_EXPR* expr,int line_no)
     }
 
     char temp[66]={0};
+    if(expr->ast_exp_type==AST_FUNC_CALL_T)
+    {
+        //reimplementation of function call more like copy -paste in content of generate_code_statements
+        //thinking of calling generate_code_statements on 
+        AST_FUNC_CALL_PARAMS* params_array[expr->func_call->parameter_count];
+        int params_array_count=-1;
+        AST_FUNC_CALL_PARAMS* temp_params=expr->func_call->parameters_list;
+        while(temp_params)
+        {
+            params_array_count+=1;
+            params_array[params_array_count]=temp_params;
+            temp_params=temp_params->next;
+        }
+        while(params_array_count>-1)
+        {
+            generate_code_expression(fd,params_array[params_array_count]->expr,expr->line_number);
+            write(fd,"\tpush eax\n",11);
+            params_array_count-=1;   
+        }
+        sprintf(temp, "\tcall function_%s\n",expr->func_call->identifier->iden);
+        write(fd,temp,strlen(temp)+1);
+        memset(temp,0,strlen(temp));
+        return;
+    }
     int temp_val=0;
     switch(expr->ast_exp_type)
     {
@@ -110,7 +134,7 @@ void generate_code_expression(int fd,AST_EXPR* expr,int line_no)
         printf("ir_codgen_warning:line %d:null epxression\n",line_no);
         break;
     case AST_FUNC_CALL_TYPE:
-        //pending implementation...
+        //implemented above
         break;
     case AST_IDEN_T:
         temp_val=expr->identifier->pointer->values.iden_values.temp_val;
