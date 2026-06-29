@@ -80,7 +80,7 @@ void generate_code_bin_exp(int fd,AST_EXPR* expr,int line_no)
         write(fd,"\tmov eax,ebx\n",13);
         break;
     case AST_MUL_T:
-        write(fd,"\tmul ebx\n",13);
+        write(fd,"\tmul ebx\n",9);
         break;
     case AST_DIV_T:
         write(fd,"\tmov ecx,eax\n",13);
@@ -119,7 +119,7 @@ void generate_code_expression(int fd,AST_EXPR* expr,int line_no)
         while(params_array_count>-1)
         {
             generate_code_expression(fd,params_array[params_array_count]->expr,line_no);
-            write(fd,"\tpush eax\n",11);
+            write(fd,"\tpush eax\n",10);
             params_array_count-=1;   
         }
         sprintf(temp, "\tcall function_%s\n",expr->func_call->identifier->iden);
@@ -357,7 +357,7 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
 }
 void generate_code_codeblock(AST_CODE_BLOCK* code_block,int fd,int add_val,int* function_context,int* var_size)
 {
-	char end[33]={0};
+	char end[45]={0};
 	char start[35]={0};
 	char* start_ptr=NULL;
 	char* end_ptr=NULL;
