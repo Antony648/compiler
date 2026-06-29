@@ -12,7 +12,7 @@ int main(int argc,char* argv[])
 	char *file_name;
 	if(argc<2)
 	{
-		file_name="output.asm";
+		file_name="./output.asm";
 	}
 	else
 		file_name=argv[1];
