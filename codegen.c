@@ -45,11 +45,34 @@ void generate_code_bin_exp(int fd,AST_EXPR* expr,int line_no)
     //the below four will be handled by for , if ,while
     //as we are already using jump conditions there
     case AST_NEQ_T:
+        write(fd,"\tcmp ebx,eax\n",13);
+        write(fd,"\tsetne al\n",10);
+        write(fd,"\tmovzx eax,al\n",14);
+        break;
     case AST_LESS_T:
+        write(fd,"\tcmp ebx,eax\n",13);
+        write(fd,"\tsetl al\n",9);
+        write(fd,"\tmovzx eax,al\n",14);
+        break;
     case AST_GREAT_T:
+        write(fd,"\tcmp ebx,eax\n",13);
+        write(fd,"\tsetg al\n",9);
+        write(fd,"\tmovzx eax,al\n",14);
+        break;
     case AST_LEQ_T:
+        write(fd,"\tcmp ebx,eax\n",13);
+        write(fd,"\tsetle al\n",10);
+        write(fd,"\tmovzx eax,al\n",14);
+        break;
     case AST_GEQ_T:
+        write(fd,"\tcmp ebx,eax\n",13);
+        write(fd,"\tsetge al\n",10);
+        write(fd,"\tmovzx eax,al\n",14);
+        break;
     case AST_EQ_T:
+        write(fd,"\tcmp ebx,eax\n",13);
+        write(fd,"\tsete al\n",9);
+        write(fd,"\tmovzx eax,al\n",14);
         break;
     case AST_SUB_T:
         write(fd,"\tsub ebx,eax\n",13);
@@ -87,6 +110,7 @@ void generate_code_expression(int fd,AST_EXPR* expr,int line_no)
         printf("ir_codgen_warning:line %d:null epxression\n",line_no);
         break;
     case AST_FUNC_CALL_TYPE:
+        //pending implementation...
         break;
     case AST_IDEN_T:
         temp_val=expr->identifier->pointer->values.iden_values.temp_val;
@@ -157,36 +181,7 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
             if(stmt->if_statement->test_case_expression->ast_exp_type==AST_BIN_EXPR_T)
             {
                 generate_code_bin_exp(fd,stmt->if_statement->test_case_expression,stmt->line_number);
-                switch(stmt->if_statement->test_case_expression->expression.bin_ops)
-                {
-
-                case AST_NULL_BIN_OPS_T:
-                    break;
-                case AST_NEQ_T:   
-                    sprintf(temp,"\tcmp ebx,eax\n\t jne if_b_start%d\n\tjmp if_b_end%d\n",if_count,if_count);
-                    break;
-                case AST_LESS_T:
-                    sprintf(temp,"\tcmp ebx,eax\n\t jl if_b_start%d\n\tjmp if_b_end%d\n",if_count,if_count);
-                    break;
-                case AST_GREAT_T:
-                    sprintf(temp,"\tcmp ebx,eax\n\t jg if_b_start%d\n\tjmp if_b_end%d\n",if_count,if_count);
-                    break;
-                case AST_LEQ_T:
-                    sprintf(temp,"\tcmp ebx,eax\n\t jle if_b_start%d\n\tjmp if_b_end%d\n",if_count,if_count);
-                    break;
-                case AST_GEQ_T:
-                    sprintf(temp,"\tcmp ebx,eax\n\t jge if_b_start%d\n\tjmp if_b_end%d\n",if_count,if_count);
-                    break;
-                case AST_EQ_T:
-                    sprintf(temp,"\tcmp ebx,eax\n\t je if_b_start%d\n\tjmp if_b_end%d\n",if_count,if_count);
-                    break;
-                case AST_ADD_T:
-                case AST_SUB_T:
-                case AST_MUL_T:
-                case AST_DIV_T:
-                    sprintf(temp,"\tcmp eax,0\n\t jne if_b_start%d\n\tjmp if_b_end%d\n",if_count,if_count); 
-                    break;
-                }
+                sprintf(temp,"\tcmp eax,0\n\t jne if_b_start%d\n\tjmp if_b_end%d\n",if_count,if_count);
             }
             else
             {
@@ -207,36 +202,7 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
             if(stmt->while_statement->test_case_expression->ast_exp_type==AST_BIN_EXPR_T)
             {
                 generate_code_bin_exp(fd,stmt->while_statement->test_case_expression,stmt->line_number);
-                switch (stmt->while_statement->test_case_expression->expression.bin_ops) 
-                {
-                    generate_code_bin_exp(fd,stmt->while_statement->test_case_expression,stmt->line_number);
-                    case AST_NULL_BIN_OPS_T:
-                        break;
-                    case AST_ADD_T:
-                    case AST_SUB_T:
-                    case AST_MUL_T:
-                    case AST_DIV_T:
-                        sprintf(temp,"\tcmp eax,0\n\t jne while_b_start%d\n\tjmp while_b_end%d",while_count,while_count);
-                        break;
-                    case AST_EQ_T:
-                        sprintf(temp,"\tcmp ebx,eax\n\t jne while_b_start%d\n\tjmp while_b_end%d",while_count,while_count);
-                        break;
-                    case AST_NEQ_T:
-                        sprintf(temp,"\tcmp ebx,eax\n\t jne while_b_start%d\n\tjmp while_b_end%d",while_count,while_count);
-                        break;
-                    case AST_LESS_T:
-                        sprintf(temp,"\tcmp ebx,eax\n\t jl while_b_start%d\n\tjmp while_b_end%d",while_count,while_count);
-                        break;
-                    case AST_GREAT_T:
-                        sprintf(temp,"\tcmp ebx,eax\n\t jg while_b_start%d\n\tjmp while_b_end%d",while_count,while_count);
-                        break;
-                    case AST_LEQ_T:
-                        sprintf(temp,"\tcmp ebx,eax\n\t jle while_b_start%d\n\tjmp while_b_end%d",while_count,while_count);
-                        break;
-                    case AST_GEQ_T:
-                        sprintf(temp,"\tcmp ebx,eax\n\t jge while_b_start%d\n\tjmp while_b_end%d",while_count,while_count);
-                        break;
-                    }
+                sprintf(temp,"\tcmp eax,0\n\t jne if_b_start%d\n\tjmp if_b_end%d\n",if_count,if_count);
             }
             else
             {
@@ -257,36 +223,7 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
             if(stmt->for_statement->test_case_expression->ast_exp_type==AST_BIN_EXPR_T)
             {
                 generate_code_bin_exp(fd,stmt->for_statement->test_case_expression,stmt->line_number);
-                switch(stmt->for_statement->test_case_expression->expression.bin_ops)
-                {
-
-                case AST_NULL_BIN_OPS_T:
-                    break;
-                case AST_ADD_T:
-                case AST_SUB_T:
-                case AST_MUL_T:
-                case AST_DIV_T:
-                    sprintf(temp,"\tcmp eax,0\n\t jne for_b_start%d\n\tjmp for_b_end%d",for_count,for_count);
-                    break;
-                case AST_EQ_T:
-                    sprintf(temp,"\tcmp ebx,eax\n\t je for_b_start%d\n\tjmp for_b_end%d",for_count,for_count);
-                    break;
-                case AST_NEQ_T:
-                    sprintf(temp,"\tcmp ebx,eax\n\t jne for_b_start%d\n\tjmp for_b_end%d",for_count,for_count);
-                    break;
-                case AST_LESS_T:
-                    sprintf(temp,"\tcmp ebx,eax\n\t jl for_b_start%d\n\tjmp for_b_end%d",for_count,for_count);
-                    break;
-                case AST_GREAT_T:
-                    sprintf(temp,"\tcmp ebx,eax\n\t jg for_b_start%d\n\tjmp for_b_end%d",for_count,for_count);
-                    break;
-                case AST_LEQ_T:
-                    sprintf(temp,"\tcmp ebx,eax\n\t jle for_b_start%d\n\tjmp for_b_end%d",for_count,for_count);
-                    break;
-                case AST_GEQ_T:
-                    sprintf(temp,"\tcmp ebx,eax\n\t jge for_b_start%d\n\tjmp for_b_end%d",for_count,for_count);
-                    break;
-                }
+                sprintf(temp,"\tcmp eax,0\n\t jne if_b_start%d\n\tjmp if_b_end%d\n",if_count,if_count);
             }
             else
             {
