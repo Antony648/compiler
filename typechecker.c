@@ -338,7 +338,7 @@ SYMBOL_TABLE_ELEM* generate_symbol_table(AST_CODE_BLOCK* ast_tree,SYMBOL_TABLE_E
 		}
 		
 		if(!passed->for_statement->init_expressions)
-			goto main_code_start;
+			goto for_expression_eval;
 		AST_STATEMENT *for_temp_init=passed->for_statement->init_expressions->statement;
 		while(for_temp_init)
 		{
@@ -366,8 +366,14 @@ SYMBOL_TABLE_ELEM* generate_symbol_table(AST_CODE_BLOCK* ast_tree,SYMBOL_TABLE_E
          	 }
 			}
 			for_temp_init=for_temp_init->next;
+			
 		}
+for_expression_eval:
+		if(!passed->for_statement->test_case_expression)
+			goto main_code_start;
+		find_expression_symbols(rtn_val, passed->for_statement->test_case_expression, passed->line_number);
 	}
+
 main_code_start:
 	while(temp)
 	{
