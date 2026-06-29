@@ -166,7 +166,7 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
             break;
         case AST_DEC_T:
             *function_context+=1;   //creates new variable inside function context
-            *var_size+=get_size_bytes(stmt->dec_statement->data_type);  //addes size for later
+            *var_size-=get_size_bytes(stmt->dec_statement->data_type);  //addes size for later
             stmt->dec_statement->identifier->pointer->values.iden_values.temp_val=*var_size;
             //setting the ebp-<value> ast temp_val in symbol table
             sprintf(temp,";create variable varno:%d\n",*function_context);
@@ -177,7 +177,7 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
             break;
         case AST_INIT_T:
             *function_context+=1;
-            *var_size+=get_size_bytes(stmt->init_statement->data_type);
+            *var_size-=get_size_bytes(stmt->init_statement->data_type);
             stmt->init_statement->identifier->pointer->values.iden_values.temp_val=*var_size;
             sprintf(temp,";create and init variable varno:%d\n",*function_context);
             write(fd,temp,strlen(temp));
@@ -295,7 +295,7 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
             break;
         case AST_RETURN_T:
             generate_code_expression(fd, stmt->return_statement->expression, stmt->line_number);
-            write(fd,"\tret\n",5);
+            write(fd,"\tmov esp,ebp\n\tpop ebp\n\tret\n",27);
             break;
         case AST_CODE_BLOCK_TYPE:
             temp_var_size=*var_size;
@@ -313,7 +313,7 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
     {
         int stmt_function_context=0;
         int stmt_var_size=0;
-        int param_offset=-8;
+        int param_offset=+8;
         AST_FUNC_PARAMS *param_temp=NULL;
         sprintf(temp,"function_%s:\n",stmt->func_statement->identifier->iden);
         write(fd,temp,strlen(temp));
@@ -326,7 +326,7 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
             if(param_temp->identifier)
             {
                 param_temp->identifier->pointer->values.iden_values.temp_val=param_offset;
-                param_offset-=get_size_bytes(param_temp->identifier->pointer->values.iden_values.data_type);
+                param_offset+=get_size_bytes(param_temp->identifier->pointer->values.iden_values.data_type);
             }
             param_temp=param_temp->next;
         }
@@ -344,20 +344,23 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
             params_array[params_array_count]=temp_params;
             temp_params=temp_params->next;
         }
+        int n=params_array_count+1;
         while(params_array_count>-1)
         {
             generate_code_expression(fd,params_array[params_array_count]->expr,stmt->line_number);
-            write(fd,"\tpush eax\n",11);
+            write(fd,"\tpush eax\n",10);
             params_array_count-=1;   
         }
         sprintf(temp, "\tcall function_%s\n",stmt->func_call->identifier->iden);
+        write(fd,temp,strlen(temp));
+        sprintf(temp,"\tadd esp,%d\n",n*4);
         write(fd,temp,strlen(temp));
         memset(temp,0,strlen(temp));
     }
 }
 void generate_code_codeblock(AST_CODE_BLOCK* code_block,int fd,int add_val,int* function_context,int* var_size)
 {
-	char end[45]={0};
+	char end[35]={0};
 	char start[35]={0};
 	char* start_ptr=NULL;
 	char* end_ptr=NULL;
@@ -396,8 +399,9 @@ void generate_code_codeblock(AST_CODE_BLOCK* code_block,int fd,int add_val,int* 
         	value_at_hand=add_val;
         	break;
         case AST_PROGRAM:
-        	start_ptr="global _start:\n\tjmp function_main\n";
-        	end_ptr="\tmov ebx,eax\n\tmov eax,1\n\tint 0x80\n\t_end:\n";
+        	start_ptr="v ebx,eax\n\tmov eax,1\n\tint 0x80\n";
+            write(fd,"global _start\n_start:\n\tcall function_main\n\tmo",45);
+        	end_ptr="\t_end:\n";
         	break;
         case AST_FOR_IMPLICT:
         	start_ptr="for_implict_start%d:\n";
@@ -440,9 +444,9 @@ void generate_code_codeblock(AST_CODE_BLOCK* code_block,int fd,int add_val,int* 
             sprintf(start,"\tjmp for_init_end%d\n",value_at_hand);
             write(fd,start,strlen(start));
             break;
-        /*case AST_FUNC_CODE_BLOCK:
-            write(fd,"\tret\n",6);
-            break;*/
+        case AST_FUNC_CODE_BLOCK:
+            write(fd,"\tmov esp,ebp\n\tpop ebp\n\tret\n",27);
+            break;
         default:
             break;
     }
