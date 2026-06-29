@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#include <error.h>
 int for_count=0;
 int while_count=0;
 int if_count=0;
@@ -40,7 +41,7 @@ void generate_code_bin_exp(int fd,AST_EXPR* expr,int line_no)
 
     
     case AST_ADD_T:
-        write(fd,"\nadd eax,ebx\n",13);
+        write(fd,"\tadd eax,ebx\n",13);
         break;
     //the below four will be handled by for , if ,while
     //as we are already using jump conditions there
@@ -122,7 +123,7 @@ void generate_code_expression(int fd,AST_EXPR* expr,int line_no)
             params_array_count-=1;   
         }
         sprintf(temp, "\tcall function_%s\n",expr->func_call->identifier->iden);
-        write(fd,temp,strlen(temp)+1);
+        write(fd,temp,strlen(temp));
         memset(temp,0,strlen(temp));
         return;
     }
@@ -142,12 +143,12 @@ void generate_code_expression(int fd,AST_EXPR* expr,int line_no)
             sprintf(temp, "\tmov eax,dword[ebp%d]\n",temp_val);
         else
             sprintf(temp,"\tmov eax,dword[ebp+%d]\n",temp_val);
-        write(fd,temp,strlen(temp)+1);
+        write(fd,temp,strlen(temp));
 
         break;
     case AST_VAL_T:
-        sprintf(temp,"\tmov eax,%d",expr->value);
-        write(fd,temp,strlen(temp)+1);
+        sprintf(temp,"\tmov eax,%d\n",expr->value);
+        write(fd,temp,strlen(temp));
         break;
     default:
         printf("ir_codgen_warning:line %d:default expression\n",line_no);
@@ -157,7 +158,7 @@ void generate_code_expression(int fd,AST_EXPR* expr,int line_no)
 void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,int *var_size)
 {
     char temp[66]={0};
-
+    int temp_var_size;
     switch(stmt->statement_type)
     {
         case AST_NULL_T:
@@ -168,105 +169,144 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
             *var_size+=get_size_bytes(stmt->dec_statement->data_type);  //addes size for later
             stmt->dec_statement->identifier->pointer->values.iden_values.temp_val=*var_size;
             //setting the ebp-<value> ast temp_val in symbol table
-            sprintf(temp,";create variable varno:%d",*function_context);
-            write(fd,temp,strlen(temp)+1);
+            sprintf(temp,";create variable varno:%d\n",*function_context);
+            write(fd,temp,strlen(temp));
             memset(temp,0,strlen(temp));
             sprintf(temp, "\tsub esp,%d\n",get_size_bytes(stmt->dec_statement->data_type));
-            write(fd,temp,strlen(temp)+1);
+            write(fd,temp,strlen(temp));
             break;
         case AST_INIT_T:
             *function_context+=1;
             *var_size+=get_size_bytes(stmt->init_statement->data_type);
             stmt->init_statement->identifier->pointer->values.iden_values.temp_val=*var_size;
             sprintf(temp,";create and init variable varno:%d\n",*function_context);
-            write(fd,temp,strlen(temp)+1);
+            write(fd,temp,strlen(temp));
 
             memset(temp,0,strlen(temp));
-            sprintf(temp, "\tsub esp,%d\n",get_size_bytes(stmt->dec_statement->data_type));
-            write(fd,temp,strlen(temp)+1);
+            sprintf(temp, "\tsub esp,%d\n",get_size_bytes(stmt->init_statement->data_type));
+            write(fd,temp,strlen(temp));
 
             generate_code_expression(fd,stmt->init_statement->expression,stmt->line_number);
             memset(temp,0,strlen(temp));
-            sprintf(temp,"\tmov dword[ebp-%d],eax\n",stmt->init_statement->identifier->pointer->values.iden_values.temp_val);
-            write(fd,temp,strlen(temp)+1);
+            if((stmt->init_statement->identifier->pointer->values.iden_values.temp_val)>=0)
+                sprintf(temp,"\tmov dword[ebp+%d],eax\n",stmt->init_statement->identifier->pointer->values.iden_values.temp_val);
+            else
+                sprintf(temp,"\tmov dword[ebp%d],eax\n",stmt->init_statement->identifier->pointer->values.iden_values.temp_val);
+            write(fd,temp,strlen(temp));
             break;
         case AST_ASSIGN_T:
             generate_code_expression(fd,stmt->assign_statement->expresssion,stmt->line_number);
-            sprintf(temp, "\tmov dword[ebp-%d],eax\n",stmt->assign_statement->identifier->pointer->values.iden_values.temp_val);
-            write(fd,temp,strlen(temp)+1);
+            if((stmt->assign_statement->identifier->pointer->values.iden_values.temp_val)>=0)
+                sprintf(temp, "\tmov dword[ebp+%d],eax\n",stmt->assign_statement->identifier->pointer->values.iden_values.temp_val);
+            else
+                sprintf(temp, "\tmov dword[ebp%d],eax\n",stmt->assign_statement->identifier->pointer->values.iden_values.temp_val);
+            write(fd,temp,strlen(temp));
             break;
         //we are going to handle not equal, greaterthan, less than, greater than or equ, less than or equ
         //below it will increase code size but will reduce redundant code  lines in output asm
         case AST_IF_CASE_T:
             sprintf(temp,"if_start_%d:\n",if_count);
-            write(fd,temp,strlen(temp)+1);
+            write(fd,temp,strlen(temp));
             memset(temp,0,strlen(temp));
-
+            temp_var_size=*var_size;
             if(stmt->if_statement->test_case_expression->ast_exp_type==AST_BIN_EXPR_T)
             {
                 generate_code_bin_exp(fd,stmt->if_statement->test_case_expression,stmt->line_number);
-                sprintf(temp,"\tcmp eax,0\n\t jne if_b_start%d\n\tjmp if_b_end%d\n",if_count,if_count);
+                sprintf(temp,"\tcmp eax,0\n\tjne if_b_start%d\n\tjmp if_b_end%d\n",if_count,if_count);
             }
             else
             {
                 generate_code_expression(fd,stmt->if_statement->test_case_expression,stmt->line_number);
-                sprintf(temp,"\tcmp eax,0\n\t jne if_b_start%d\n\tjmp if_b_end%d\n",if_count,if_count);
+                sprintf(temp,"\tcmp eax,0\n\tjne if_b_start%d\n\tjmp if_b_end%d\n",if_count,if_count);
             }
 
-            write(fd,temp,strlen(temp)+1);
+            write(fd,temp,strlen(temp));
             memset(temp,0,strlen(temp));
-            generate_code_codeblock(stmt->code_block, fd, if_count, function_context, var_size);
+            generate_code_codeblock(stmt->if_statement->code_block, fd, if_count, function_context, var_size);
             if_count+=1;
+            if(*var_size>temp_var_size)
+            {
+                //reclaim space obtained by for subset
+                sprintf(temp,"\tadd esp,%d\n",*var_size-temp_var_size);
+                write(fd,temp,strlen(temp));
+                *var_size=temp_var_size;
+            }
             break;
         case AST_WHILE_CASE_T:
             sprintf(temp, "while_start_%d:\n",while_count);
-            write(fd,temp,strlen(temp)+1);
+            write(fd,temp,strlen(temp));
             memset(temp,0,strlen(temp));
-
+            temp_var_size=*var_size;
             if(stmt->while_statement->test_case_expression->ast_exp_type==AST_BIN_EXPR_T)
             {
                 generate_code_bin_exp(fd,stmt->while_statement->test_case_expression,stmt->line_number);
-                sprintf(temp,"\tcmp eax,0\n\t jne if_b_start%d\n\tjmp if_b_end%d\n",if_count,if_count);
+                sprintf(temp,"\tcmp eax,0\n\tjne while_b_start%d\n\tjmp while_b_end%d\n",if_count,if_count);
             }
             else
             {
                 generate_code_expression(fd,stmt->while_statement->test_case_expression,stmt->line_number);
-                sprintf(temp,"\tcmp eax,0\n\t jne while_b_start%d\n\tjmp while_b_end%d",while_count,while_count);
+                sprintf(temp,"\tcmp eax,0\n\tjne while_b_start%d\n\tjmp while_b_end%d\n",while_count,while_count);
             }
 
-            write(fd,temp,strlen(temp)+1);
+            write(fd,temp,strlen(temp));
             memset(temp,0,strlen(temp));
-            generate_code_codeblock(stmt->code_block, fd, while_count, function_context, var_size);
+            generate_code_codeblock(stmt->while_statement->code_block, fd, while_count, function_context, var_size);
             while_count+=1;
+            if(*var_size>temp_var_size)
+            {
+                //reclaim space obtained by for subset
+                sprintf(temp,"\tadd esp,%d\n",*var_size-temp_var_size);
+                write(fd,temp,strlen(temp));
+                *var_size=temp_var_size;
+            }
             break;
         case AST_FOR_T:
             sprintf(temp, "for_start_%d:\n",for_count);
-            write(fd,temp,strlen(temp)+1);
+            write(fd,temp,strlen(temp));
             memset(temp,0,strlen(temp));
-
+            temp_var_size=*var_size;
+            if(stmt->for_statement->init_expressions)
+                generate_code_codeblock(stmt->for_statement->init_expressions, fd, for_count, function_context, var_size);
             if(stmt->for_statement->test_case_expression->ast_exp_type==AST_BIN_EXPR_T)
             {
                 generate_code_bin_exp(fd,stmt->for_statement->test_case_expression,stmt->line_number);
-                sprintf(temp,"\tcmp eax,0\n\t jne if_b_start%d\n\tjmp if_b_end%d\n",if_count,if_count);
+                sprintf(temp,"\tcmp eax,0\n\tjne for_b_start%d\n\tjmp for_b_end%d\n",if_count,if_count);
             }
             else
             {
                 generate_code_expression(fd,stmt->for_statement->test_case_expression,stmt->line_number);
-                sprintf(temp,"\tcmp eax,0\n\t jne for_b_start%d\n\tjmp for_b_end%d",for_count,for_count);
+                sprintf(temp,"\tcmp eax,0\n\tjne for_b_start%d\n\tjmp for_b_end%d\n",for_count,for_count);
             }
-            write(fd,temp,strlen(temp)+1);
+            write(fd,temp,strlen(temp));
             memset(temp,0,strlen(temp));
-            generate_code_codeblock(stmt->code_block, fd, for_count,function_context, var_size);
+            generate_code_codeblock(stmt->for_statement->code_block, fd, for_count,function_context, var_size);
             for_count+=1;
+            if(*var_size>temp_var_size)
+            {
+                //reclaim space obtained by for subset
+                sprintf(temp,"\tadd esp,%d\n",*var_size-temp_var_size);
+                write(fd,temp,strlen(temp));
+                *var_size=temp_var_size;
+            }
             break;
         case AST_FUNC_T:
             break;
         case AST_FUNC_CALL_T:
             break;
         case AST_RETURN_T:
-            write(fd,"\tret\n",6);
+            generate_code_expression(fd, stmt->return_statement->expression, stmt->line_number);
+            write(fd,"\tret\n",5);
             break;
         case AST_CODE_BLOCK_TYPE:
+            temp_var_size=*var_size;
+            generate_code_codeblock(stmt->code_block, fd, 0, function_context, var_size);
+            if(*var_size>temp_var_size)
+            {
+                //reclaim space obtained by for subset
+                sprintf(temp,"\tadd esp,%d\n",*var_size-temp_var_size);
+                write(fd,temp,strlen(temp));
+                *var_size=temp_var_size;
+            }
             break;
     }
     if(stmt->statement_type==AST_FUNC_T)
@@ -275,8 +315,8 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
         int stmt_var_size=0;
         int param_offset=-8;
         AST_FUNC_PARAMS *param_temp=NULL;
-        sprintf(temp,"function_%s:",stmt->func_statement->identifier->iden);
-        write(fd,temp,strlen(temp)+1);
+        sprintf(temp,"function_%s:\n",stmt->func_statement->identifier->iden);
+        write(fd,temp,strlen(temp));
         memset(temp,0,strlen(temp));
 
         //set paramters
@@ -290,7 +330,7 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
             }
             param_temp=param_temp->next;
         }
-        generate_code_codeblock(stmt->code_block,fd,0,&stmt_function_context,&stmt_var_size);
+        generate_code_codeblock(stmt->func_statement->code_block,fd,function_count,&stmt_function_context,&stmt_var_size);
         function_count+=1;
     }
     if(stmt->statement_type==AST_FUNC_CALL_T)
@@ -311,7 +351,7 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
             params_array_count-=1;   
         }
         sprintf(temp, "\tcall function_%s\n",stmt->func_call->identifier->iden);
-        write(fd,temp,strlen(temp)+1);
+        write(fd,temp,strlen(temp));
         memset(temp,0,strlen(temp));
     }
 }
@@ -379,7 +419,7 @@ void generate_code_codeblock(AST_CODE_BLOCK* code_block,int fd,int add_val,int* 
     if(code_block->code_block_type==AST_FUNC_CODE_BLOCK)
     {
 
-        write(fd,"\tpush ebp\n\tmov ebp,esp\n",25);
+        write(fd,"\tpush ebp\n\tmov ebp,esp\n",23);
 
     }
     AST_STATEMENT* stmt=code_block->statement;
@@ -393,12 +433,12 @@ void generate_code_codeblock(AST_CODE_BLOCK* code_block,int fd,int add_val,int* 
         case AST_WHILE_CODE_BLOCK:
             memset(start,0,strlen(start));
             sprintf(start,"\tjmp while_start_%d\n",value_at_hand);
-            write(fd,start,strlen(start)+1);
+            write(fd,start,strlen(start));
             break;
         case AST_FOR_CODE_BLOCK:
             memset(start,0,strlen(start));
-            sprintf(start,"\tjmp for_start_%d\n",value_at_hand);
-            write(fd,start,strlen(start)+1);
+            sprintf(start,"\tjmp for_init_end%d\n",value_at_hand);
+            write(fd,start,strlen(start));
             break;
         /*case AST_FUNC_CODE_BLOCK:
             write(fd,"\tret\n",6);
@@ -411,10 +451,10 @@ void generate_code_codeblock(AST_CODE_BLOCK* code_block,int fd,int add_val,int* 
 }
 bool generate_code(const char* file_name,SYMBOL_TABLE_ELEM* sym_tbl,AST_CODE_BLOCK* parse_tree)
 {
-	int file_ptr=open(file_name,O_CREAT|O_TRUNC|O_WRONLY);
+	int file_ptr=open(file_name,O_CREAT|O_TRUNC|O_WRONLY,0644);
 	if(file_ptr<0)
 	{
-		printf("codegen:failure in creation of output file\n");
+		perror("codegen:failure in creation of output file\n");
 		return false;
 	}
     generate_code_codeblock(parse_tree,file_ptr, 0, &function_count, 0);
