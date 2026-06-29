@@ -1,20 +1,10 @@
-
+int add(int a,int b)
+{
+   return a+b;
+}
 int main()
 {
-   int q;
-   int k;
-   for(int a=0;a<10;a=a+1)
-   {
-      q=q+a;
-   }
-   {
-      int z=0;
-      z=q+k;
-   }
-   while(1)
-   {
-      k=k+1;
-      q=q*3;
-   }
-   return q;
+   int a=2;int b=3;
+   add(a,b);
+   return 0;
 }
