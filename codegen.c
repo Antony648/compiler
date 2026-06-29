@@ -80,7 +80,7 @@ void generate_code_bin_exp(int fd,AST_EXPR* expr,int line_no)
         write(fd,"\tmov eax,ebx\n",13);
         break;
     case AST_MUL_T:
-        write(fd,"\tmul eax,ebx\n",13);
+        write(fd,"\tmul ebx\n",13);
         break;
     case AST_DIV_T:
         write(fd,"\tmov ecx,eax\n",13);
@@ -396,8 +396,8 @@ void generate_code_codeblock(AST_CODE_BLOCK* code_block,int fd,int add_val,int* 
         	value_at_hand=add_val;
         	break;
         case AST_PROGRAM:
-        	start_ptr="_start:\n";
-        	end_ptr="_end:\n";
+        	start_ptr="global _start:\n\tjmp function_main\n";
+        	end_ptr="\tmov ebx,eax\n\tmov eax,1\n\tint 0x80\n\t_end:\n";
         	break;
         case AST_FOR_IMPLICT:
         	start_ptr="for_implict_start%d:\n";
