@@ -1871,6 +1871,7 @@ AST_DEC_T,
 					goto error_end;
 				break;
 			}
+			break;
 		}
 		case TOKEN_IF:
 		{
