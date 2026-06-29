@@ -117,7 +117,7 @@ void generate_code_expression(int fd,AST_EXPR* expr,int line_no)
         }
         while(params_array_count>-1)
         {
-            generate_code_expression(fd,params_array[params_array_count]->expr,expr->line_number);
+            generate_code_expression(fd,params_array[params_array_count]->expr,line_no);
             write(fd,"\tpush eax\n",11);
             params_array_count-=1;   
         }
