@@ -1,7 +1,9 @@
 #include "lexer.h"
 #include "parser.h"
 #include "pretty_print.h"
+#include "symbol_table.h"
 #include "typechecker.h"
+#include "codegen.h"
 #include <fcntl.h>
 #include <stdio.h>
 
@@ -30,7 +32,11 @@ int main(int argc,char* argv[])
 		goto error_end;
 	}
 	pretty_print(ast_tree);
-	generate_symbol_table(ast_tree, NULL, 0, NULL);
+	SYMBOL_TABLE_ELEM *symb_tbl=generate_symbol_table(ast_tree, NULL, 0, NULL);
+	if(generate_code(file_name, symb_tbl, ast_tree))
+		printf("output in %s\n",file_name);
+	else
+		printf("failure in codegen phase\n");
 	death_lever();
 	destroy_code_block(ast_tree);
 error_end:
