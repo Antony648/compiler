@@ -1,10 +1,15 @@
 int add(int a,int b)
 {
-   return a+b;
+   int j=a+b;
 }
 int main()
 {
    int a=2;int b=3;
    add(a,b);
+   if(a>b)
+   {
+      int k=76;
+   }
+   int j=9;
    return 0;
 }
