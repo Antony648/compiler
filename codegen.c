@@ -7,11 +7,13 @@
 #include <fcntl.h>
 #include <string.h>
 #include <error.h>
+#include <stdbool.h>
 int for_count=0;
 int while_count=0;
 int if_count=0;
 int normal_count=0;
 int function_count=0;
+bool is_rtn_present=false;
 //
 int get_size_bytes(AST_DATA_TYPES type)
 {
@@ -224,10 +226,10 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
             memset(temp,0,strlen(temp));
             generate_code_codeblock(stmt->if_statement->code_block, fd, if_count, function_context, var_size);
             if_count+=1;
-            if(*var_size>temp_var_size)
+            if(*var_size<temp_var_size)
             {
                 //reclaim space obtained by for subset
-                sprintf(temp,"\tadd esp,%d\n",*var_size-temp_var_size);
+                sprintf(temp,"\tadd esp,%d\n",temp_var_size-*var_size);
                 write(fd,temp,strlen(temp));
                 *var_size=temp_var_size;
             }
@@ -252,10 +254,10 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
             memset(temp,0,strlen(temp));
             generate_code_codeblock(stmt->while_statement->code_block, fd, while_count, function_context, var_size);
             while_count+=1;
-            if(*var_size>temp_var_size)
+            if(*var_size<temp_var_size)
             {
                 //reclaim space obtained by for subset
-                sprintf(temp,"\tadd esp,%d\n",*var_size-temp_var_size);
+                sprintf(temp,"\tadd esp,%d\n",temp_var_size-*var_size);
                 write(fd,temp,strlen(temp));
                 *var_size=temp_var_size;
             }
@@ -281,10 +283,10 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
             memset(temp,0,strlen(temp));
             generate_code_codeblock(stmt->for_statement->code_block, fd, for_count,function_context, var_size);
             for_count+=1;
-            if(*var_size>temp_var_size)
+            if(*var_size<temp_var_size)
             {
                 //reclaim space obtained by for subset
-                sprintf(temp,"\tadd esp,%d\n",*var_size-temp_var_size);
+                sprintf(temp,"\tadd esp,%d\n",temp_var_size-*var_size);
                 write(fd,temp,strlen(temp));
                 *var_size=temp_var_size;
             }
@@ -294,6 +296,7 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
         case AST_FUNC_CALL_T:
             break;
         case AST_RETURN_T:
+            is_rtn_present=true;
             generate_code_expression(fd, stmt->return_statement->expression, stmt->line_number);
             write(fd,"\tmov esp,ebp\n\tpop ebp\n\tret\n",27);
             break;
@@ -331,6 +334,7 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
             param_temp=param_temp->next;
         }
         generate_code_codeblock(stmt->func_statement->code_block,fd,function_count,&stmt_function_context,&stmt_var_size);
+        is_rtn_present=false;
         function_count+=1;
     }
     if(stmt->statement_type==AST_FUNC_CALL_T)
@@ -401,7 +405,7 @@ void generate_code_codeblock(AST_CODE_BLOCK* code_block,int fd,int add_val,int* 
         case AST_PROGRAM:
         	start_ptr="v ebx,eax\n\tmov eax,1\n\tint 0x80\n";
             write(fd,"global _start\n_start:\n\tcall function_main\n\tmo",45);
-        	end_ptr="\t_end:\n";
+        	end_ptr="_end:\n";
         	break;
         case AST_FOR_IMPLICT:
         	start_ptr="for_implict_start%d:\n";
@@ -445,6 +449,7 @@ void generate_code_codeblock(AST_CODE_BLOCK* code_block,int fd,int add_val,int* 
             write(fd,start,strlen(start));
             break;
         case AST_FUNC_CODE_BLOCK:
+            if(!is_rtn_present)
             write(fd,"\tmov esp,ebp\n\tpop ebp\n\tret\n",27);
             break;
         default:
