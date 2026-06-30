@@ -9,15 +9,22 @@
 
 int main(int argc,char* argv[])
 {
-	char *file_name;
+	char *output_file_name;
+	char *input_file_name;
 	if(argc<2)
 	{
-		file_name="./output.asm";
+		printf("no input file name found\n");
+		return 1;
+	}
+	input_file_name=argv[1];
+	if(argc<3)
+	{
+		output_file_name="./output.asm";
 	}
 	else
-		file_name=argv[1];
+		output_file_name=argv[2];
 	FILE* file_ptr=NULL;
-	file_ptr=fopen("input.txt","r");
+	file_ptr=fopen(input_file_name,"r");
 	if(!file_ptr)
 	{
 		printf("failed in opening file\n");
@@ -33,8 +40,8 @@ int main(int argc,char* argv[])
 	}
 	pretty_print(ast_tree);
 	SYMBOL_TABLE_ELEM *symb_tbl=generate_symbol_table(ast_tree, NULL, 0, NULL);
-	if(generate_code(file_name, symb_tbl, ast_tree))
-		printf("output in %s\n",file_name);
+	if(generate_code(output_file_name, symb_tbl, ast_tree))
+		printf("output in %s\n",output_file_name);
 	else
 		printf("failure in codegen phase\n");
 	death_lever();
