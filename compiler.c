@@ -38,7 +38,7 @@ int main(int argc,char* argv[])
 		printf("failure in generation ast tree.\n");
 		goto error_end;
 	}
-	pretty_print(ast_tree);
+	//pretty_print(ast_tree);
 	SYMBOL_TABLE_ELEM *symb_tbl=generate_symbol_table(ast_tree, NULL, 0, NULL);
 	if(generate_code(output_file_name, symb_tbl, ast_tree))
 		printf("output in %s\n",output_file_name);
