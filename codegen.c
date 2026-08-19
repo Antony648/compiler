@@ -224,8 +224,8 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
 
             write(fd,temp,strlen(temp));
             memset(temp,0,strlen(temp));
-            generate_code_codeblock(stmt->if_statement->code_block, fd, if_count, function_context, var_size);
-            if_count+=1;
+            generate_code_codeblock(stmt->if_statement->code_block, fd, if_count, function_context, var_size,NULL);
+            //if_count+=1;
             if(*var_size<temp_var_size)
             {
                 //reclaim space obtained by for subset
@@ -233,6 +233,9 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
                 write(fd,temp,strlen(temp));
                 *var_size=temp_var_size;
             }
+            sprintf(temp,"if_b_end%d:\n",if_count);
+            write(fd,temp,strlen(temp));
+            if_count+=1;
             break;
         case AST_WHILE_CASE_T:
             sprintf(temp, "while_start_%d:\n",while_count);
@@ -242,7 +245,7 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
             if(stmt->while_statement->test_case_expression->ast_exp_type==AST_BIN_EXPR_T)
             {
                 generate_code_bin_exp(fd,stmt->while_statement->test_case_expression,stmt->line_number);
-                sprintf(temp,"\tcmp eax,0\n\tjne while_b_start%d\n\tjmp while_b_end%d\n",if_count,if_count);
+                sprintf(temp,"\tcmp eax,0\n\tjne while_b_start%d\n\tjmp while_b_end%d\n",while_count,while_count);
             }
             else
             {
@@ -252,8 +255,7 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
 
             write(fd,temp,strlen(temp));
             memset(temp,0,strlen(temp));
-            generate_code_codeblock(stmt->while_statement->code_block, fd, while_count, function_context, var_size);
-            while_count+=1;
+            generate_code_codeblock(stmt->while_statement->code_block, fd, while_count, function_context, var_size,NULL);
             if(*var_size<temp_var_size)
             {
                 //reclaim space obtained by for subset
@@ -261,6 +263,9 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
                 write(fd,temp,strlen(temp));
                 *var_size=temp_var_size;
             }
+            sprintf(temp,"while_b_end%d:\n",while_count);
+            write(fd,temp,strlen(temp));
+            while_count+=1;
             break;
         case AST_FOR_T:
             sprintf(temp, "for_start_%d:\n",for_count);
@@ -268,21 +273,21 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
             memset(temp,0,strlen(temp));
             temp_var_size=*var_size;
             if(stmt->for_statement->init_expressions)
-                generate_code_codeblock(stmt->for_statement->init_expressions, fd, for_count, function_context, var_size);
+                generate_code_codeblock(stmt->for_statement->init_expressions, fd, for_count, function_context, var_size,NULL);
             if(stmt->for_statement->test_case_expression->ast_exp_type==AST_BIN_EXPR_T)
             {
                 generate_code_bin_exp(fd,stmt->for_statement->test_case_expression,stmt->line_number);
-                sprintf(temp,"\tcmp eax,0\n\tjne for_b_start%d\n\tjmp for_b_end%d\n",if_count,if_count);
+                sprintf(temp,"\tcmp eax,0\n\tjne for_b_start%d\n\tjmp for_b_dealloc%d\n",for_count,for_count);
             }
             else
             {
                 generate_code_expression(fd,stmt->for_statement->test_case_expression,stmt->line_number);
-                sprintf(temp,"\tcmp eax,0\n\tjne for_b_start%d\n\tjmp for_b_end%d\n",for_count,for_count);
+                sprintf(temp,"\tcmp eax,0\n\tjne for_b_start%d\n\tjmp for_b_dealloc%d\n",for_count,for_count);
             }
             write(fd,temp,strlen(temp));
             memset(temp,0,strlen(temp));
-            generate_code_codeblock(stmt->for_statement->code_block, fd, for_count,function_context, var_size);
-            for_count+=1;
+            generate_code_codeblock(stmt->for_statement->code_block, fd, for_count,function_context, var_size,stmt->for_statement->implict_expressions);
+            //for_count+=1;
             if(*var_size<temp_var_size)
             {
                 //reclaim space obtained by for subset
@@ -290,6 +295,9 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
                 write(fd,temp,strlen(temp));
                 *var_size=temp_var_size;
             }
+            sprintf(temp, "for_b_end%d:\n",for_count);
+            write(fd,temp,strlen(temp));
+            for_count+=1;
             break;
         case AST_FUNC_T:
             break;
@@ -302,7 +310,7 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
             break;
         case AST_CODE_BLOCK_TYPE:
             temp_var_size=*var_size;
-            generate_code_codeblock(stmt->code_block, fd, 0, function_context, var_size);
+            generate_code_codeblock(stmt->code_block, fd, 0, function_context, var_size,NULL);
             if(*var_size>temp_var_size)
             {
                 //reclaim space obtained by for subset
@@ -333,7 +341,7 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
             }
             param_temp=param_temp->next;
         }
-        generate_code_codeblock(stmt->func_statement->code_block,fd,function_count,&stmt_function_context,&stmt_var_size);
+        generate_code_codeblock(stmt->func_statement->code_block,fd,function_count,&stmt_function_context,&stmt_var_size,NULL);
         is_rtn_present=false;
         function_count+=1;
     }
@@ -362,7 +370,7 @@ void generate_code_statements(int fd,AST_STATEMENT* stmt,int* function_context,i
         memset(temp,0,strlen(temp));
     }
 }
-void generate_code_codeblock(AST_CODE_BLOCK* code_block,int fd,int add_val,int* function_context,int* var_size)
+void generate_code_codeblock(AST_CODE_BLOCK* code_block,int fd,int add_val,int* function_context,int* var_size,AST_CODE_BLOCK* inc)
 {
 	char end[35]={0};
 	char start[35]={0};
@@ -384,17 +392,17 @@ void generate_code_codeblock(AST_CODE_BLOCK* code_block,int fd,int add_val,int* 
         	break;
         case AST_IF_CODE_BLOCK:
         	start_ptr="if_b_start%d:\n";
-        	end_ptr="if_b_end%d:\n";
+        	end_ptr="if_b_dealloc%d:\n";
         	value_at_hand=add_val;
         	break;
         case AST_FOR_CODE_BLOCK:
         	start_ptr="for_b_start%d:\n";
-        	end_ptr="for_b_end%d:\n";
+        	end_ptr="for_b_dealloc%d:\n";
         	value_at_hand=add_val;
         	break;
         case AST_WHILE_CODE_BLOCK:
         	start_ptr="while_b_start%d:\n";
-        	end_ptr="while_b_end%d:\n";
+        	end_ptr="while_b_dealloc%d:\n";
         	value_at_hand=add_val;
         	break;
         case AST_FUNC_CODE_BLOCK:
@@ -444,6 +452,12 @@ void generate_code_codeblock(AST_CODE_BLOCK* code_block,int fd,int add_val,int* 
             write(fd,start,strlen(start));
             break;
         case AST_FOR_CODE_BLOCK:
+            stmt=inc->statement;
+            while(stmt)
+            {
+                generate_code_statements(fd, stmt, function_context, var_size);
+                stmt=stmt->next;
+            }
             memset(start,0,strlen(start));
             sprintf(start,"\tjmp for_init_end%d\n",value_at_hand);
             write(fd,start,strlen(start));
@@ -466,7 +480,7 @@ bool generate_code(const char* file_name,SYMBOL_TABLE_ELEM* sym_tbl,AST_CODE_BLO
 		perror("codegen:failure in creation of output file\n");
 		return false;
 	}
-    generate_code_codeblock(parse_tree,file_ptr, 0, &function_count, 0);
+    generate_code_codeblock(parse_tree,file_ptr, 0, &function_count, 0,NULL);
 	close(file_ptr);
 	return true;
 }
