@@ -38,24 +38,40 @@ function_b_start1:
 	push eax
 	call function_add
 	add esp,8
-if_start_0:
-	mov eax,dword[ebp-4]
-	push eax
-	mov eax,dword[ebp-8]
-	pop ebx
-	cmp ebx,eax
-	setg al
-	movzx eax,al
-	cmp eax,0
-	jne if_b_start0
-	jmp if_b_end0
-if_b_start0:
+for_start_0:
+for_init_start0:
 ;create and init variable varno:3
 	sub esp,4
-	mov eax,76
+	mov eax,0
 	mov dword[ebp-12],eax
-if_b_end0:
+for_init_end0:
+	mov eax,dword[ebp-12]
+	push eax
+	mov eax,10
+	pop ebx
+	cmp ebx,eax
+	setl al
+	movzx eax,al
+	cmp eax,0
+	jne for_b_start0
+	jmp for_b_dealloc0
+for_b_start0:
+	mov eax,dword[ebp-4]
+	push eax
+	mov eax,1
+	pop ebx
+	add eax,ebx
+	mov dword[ebp-4],eax
+	mov eax,dword[ebp-12]
+	push eax
+	mov eax,1
+	pop ebx
+	add eax,ebx
+	mov dword[ebp-12],eax
+	jmp for_init_end0
+for_b_dealloc0:
 	add esp,4
+for_b_end0:
 ;create and init variable varno:4
 	sub esp,4
 	mov eax,9
